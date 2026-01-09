@@ -12,7 +12,6 @@
     <style>
         :root { --main-brown: #b0a496; --bg-cream: #fcf8f5; --accent-brown: #8c7b6c; --price-red: #d9534f; --profit-green: #6b8e23; }
         
-        /* 確保電腦/iPad/手機全平台可順暢滑動 */
         html, body {
             margin: 0; padding: 0; background: var(--bg-cream); font-family: sans-serif; color: #5d5246;
             overflow-y: auto !important; height: auto !important;
@@ -28,7 +27,6 @@
         .nav-btn { background: white; border: 1px solid #d1c7bc; padding: 8px 18px; border-radius: 20px; white-space: nowrap; cursor: pointer; }
         .container { display: flex; flex-wrap: wrap; padding: 15px; gap: 15px; max-width: 1400px; margin: 0 auto; }
 
-        /* 商品區 */
         .item-section { flex: 2; min-width: 320px; }
         .cat-title { background: #fdf5f0; padding: 10px 15px; border-radius: 20px; margin: 25px 0 10px; font-weight: bold; border-left: 8px solid var(--main-brown); }
         .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
@@ -36,10 +34,8 @@
         .p-name { font-weight: bold; font-size: 0.9em; margin-bottom: 5px; }
         .p-price { color: #c2966d; font-weight: bold; }
         
-        /* 缺貨樣式 */
         .p-btn.out-of-stock { background: #e0e0e0; cursor: not-allowed; box-shadow: none; opacity: 0.6; }
 
-        /* 結帳控制區 */
         .checkout-section { flex: 1; min-width: 320px; }
         .card { background: white; border-radius: 15px; padding: 20px; border: 2px solid #e8e0d9; margin-bottom: 15px; }
         
@@ -50,7 +46,6 @@
         .pay-btn { flex: 1; padding: 15px; border-radius: 10px; border: 1px solid #ccc; background: white; font-weight: bold; cursor: pointer; }
         .pay-btn.active { background: var(--accent-brown); color: white; border-color: var(--accent-brown); }
 
-        /* 彈窗樣式 */
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: none; justify-content: center; align-items: center; padding: 20px; }
         .modal-content { background: white; width: 100%; max-width: 900px; max-height: 90vh; border-radius: 20px; padding: 25px; display: flex; flex-direction: column; }
         .scroll-v { flex: 1; overflow: auto; border: 1px solid #eee; margin-top: 15px; }
@@ -60,9 +55,11 @@
         th { background: #f8f5f2; position: sticky; top: 0; }
         .admin-input { width: 55px; padding: 5px; text-align: center; border: 1px solid #ddd; }
 
-        /* 今日紀錄樣式 */
         .log-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #f0f0f0; background: #fafafa; border-radius: 8px; margin-bottom: 5px; }
         .btn-del-record { background: #ffeded; color: #d9534f; border: 1px solid #d9534f; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em; font-weight: bold; }
+        
+        /* 補貨提醒樣式 */
+        .stock-alert-item { color: #d9534f; font-weight: bold; padding: 5px 0; border-bottom: 1px dashed #eee; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
@@ -94,6 +91,11 @@
                 <input type="date" id="backdate-val" style="width:100%; margin-top:5px;">
             </div>
             <button onclick="checkout()" style="width:100%; padding:20px; background:var(--profit-green); color:white; border:none; border-radius:15px; font-size:1.5em; font-weight:bold; cursor:pointer;">結帳完成</button>
+        </div>
+
+        <div class="card" style="border-color: #ffcccc; background-color: #fff9f9;">
+            <strong>📢 補貨提醒 (無庫存商品)</strong>
+            <div id="stock-alert-list" style="font-size: 0.9em; margin-top:10px; max-height: 150px; overflow-y: auto;"></div>
         </div>
 
         <div class="card">
@@ -182,7 +184,7 @@
     let inv = []; let orders = []; let cart = []; let payM = '現金';
 
     function init() {
-        db.ref('inventory').on('value', snap => { inv = snap.val() || []; renderUI(); renderAdmin(); });
+        db.ref('inventory').on('value', snap => { inv = snap.val() || []; renderUI(); renderAdmin(); renderStockAlert(); });
         db.ref('orders').on('value', snap => {
             const data = snap.val();
             orders = data ? Object.keys(data).map(k => ({...data[k], key: k})) : [];
@@ -209,6 +211,27 @@
         document.getElementById('sel-cat').innerHTML = inv.map((c,i)=>`<option value="${i}">${c.cat}</option>`).join('');
     }
 
+    // 新增：渲染補貨提醒
+    function renderStockAlert() {
+        const alertBox = document.getElementById('stock-alert-list');
+        let outOfStockItems = [];
+        inv.forEach(cat => {
+            (cat.items || []).forEach(it => {
+                if (it.s <= 0) outOfStockItems.push(it.n);
+            });
+        });
+        
+        if (outOfStockItems.length === 0) {
+            alertBox.innerHTML = '<div style="color: #999; text-align: center;">✅ 目前庫存充足</div>';
+        } else {
+            alertBox.innerHTML = outOfStockItems.map(name => `
+                <div class="stock-alert-item">
+                    <span>${name}</span>
+                    <span>需補貨</span>
+                </div>`).join('');
+        }
+    }
+
     function addCart(n, p, c) { cart.push({n, p, c}); renderCart(); }
     function renderCart() {
         document.getElementById('cart-list').innerHTML = cart.map((it, i) => `<div style="display:flex;justify-content:space-between;padding:5px 0;"><span>${it.n}</span><span onclick="cart.splice(${i},1);renderCart()" style="color:red;cursor:pointer;">✕</span></div>`).join('');
@@ -228,34 +251,22 @@
 
     function checkout() {
         if (!cart.length) return;
-
-        // --- 新增：庫存檢查機制 ---
-        // 統計購物車內每種商品的需要數量
         let cartCount = {};
         cart.forEach(item => { cartCount[item.n] = (cartCount[item.n] || 0) + 1; });
-
-        // 比對庫存是否足夠
         let outOfStockItems = [];
         for (let name in cartCount) {
-            let found = false;
             inv.forEach(cat => {
                 (cat.items || []).forEach(it => {
-                    if (it.n === name) {
-                        found = true;
-                        if (it.s < cartCount[name]) {
-                            outOfStockItems.push(`${name} (剩餘 ${it.s})`);
-                        }
+                    if (it.n === name && it.s < cartCount[name]) {
+                        outOfStockItems.push(`${name} (剩餘 ${it.s})`);
                     }
                 });
             });
         }
-
         if (outOfStockItems.length > 0) {
             alert("❌ 無法結帳！以下商品庫存不足：\n" + outOfStockItems.join("\n"));
-            return; // 終止結帳
+            return;
         }
-        // --- 檢查結束 ---
-
         const total = Number(document.getElementById('final-total').innerText);
         const cost = cart.reduce((a, b) => a + (b.c || 0), 0);
         const date = document.getElementById('is-backdate').checked && document.getElementById('backdate-val').value ? document.getElementById('backdate-val').value.replace(/-/g,'/') : new Date().toLocaleDateString('zh-TW');
@@ -263,10 +274,7 @@
             d: date, t: new Date().toLocaleTimeString('zh-TW', {hour12:false}),
             items: cart.map(i=>i.n).join(', '), total: total, profit: total - cost, pay: payM, dis: Number(document.getElementById('discount').value) || 0, note: document.getElementById('order-note').value
         };
-        
-        // 扣除庫存邏輯 (保持原樣)
         cart.forEach(c => { inv.forEach(cat => { (cat.items || []).forEach(it => { if(it.n === c.n) it.s--; }); }); });
-        
         db.ref('orders').push(order); 
         db.ref('inventory').set(inv);
         alert("結帳成功！"); cart = []; renderCart(); document.getElementById('discount').value=''; document.getElementById('cash-in').value=''; document.getElementById('order-note').value='';
@@ -281,10 +289,6 @@
         const currentReport = { date: today, cash, elec, discount: dis, profit: prof, total: cash+elec, items: todayOrders.length + "筆" };
         document.getElementById('report-body').innerHTML = `總收：$${cash+elec}<br>現金：$${cash} | 電支：$${elec}<br>毛利：$${prof}<br>折扣：$${dis}`;
         openM('report-modal');
-    }
-
-    function sendToGoogle() {
-        alert("已開始傳送！");
     }
 
     function renderAdmin() {
