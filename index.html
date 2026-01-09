@@ -10,7 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <style>
-        :root { --main-brown: #b0a496; --bg-cream: #fcf8f5; --accent-brown: #8c7b6c; --price-red: #d9534f; --profit-green: #6b8e23; }
+        :root { --main-brown: #b0a496; --bg-cream: #fcf8f5; --accent-brown: #8c7b6c; --price-red: #d9534f; --profit-green: #6b8e23; --preorder-blue: #5bc0de; }
         
         html, body {
             margin: 0; padding: 0; background: var(--bg-cream); font-family: sans-serif; color: #5d5246;
@@ -28,7 +28,9 @@
         .container { display: flex; flex-wrap: wrap; padding: 15px; gap: 15px; max-width: 1400px; margin: 0 auto; }
 
         .item-section { flex: 2; min-width: 320px; }
-        .cat-title { background: #fdf5f0; padding: 10px 15px; border-radius: 20px; margin: 25px 0 10px; font-weight: bold; border-left: 8px solid var(--main-brown); }
+        .cat-title { background: #fdf5f0; padding: 10px 15px; border-radius: 20px; margin: 25px 0 10px; font-weight: bold; border-left: 8px solid var(--main-brown); display: flex; justify-content: space-between; align-items: center; }
+        .preorder-tag { font-size: 0.7em; background: var(--preorder-blue); color: white; padding: 2px 8px; border-radius: 10px; margin-left: 10px; }
+        
         .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
         .p-btn { background: white; border: 1px solid #f0e6dd; border-radius: 12px; padding: 15px 5px; text-align: center; cursor: pointer; box-shadow: 3px 3px 0 #e8e0d9; }
         .p-name { font-weight: bold; font-size: 0.9em; margin-bottom: 5px; }
@@ -45,10 +47,10 @@
         .pay-btn.active { background: var(--accent-brown); color: white; border-color: var(--accent-brown); }
 
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: none; justify-content: center; align-items: center; padding: 20px; }
-        .modal-content { background: white; width: 100%; max-width: 950px; max-height: 90vh; border-radius: 20px; padding: 25px; display: flex; flex-direction: column; overflow: hidden; }
+        .modal-content { background: white; width: 100%; max-width: 1000px; max-height: 90vh; border-radius: 20px; padding: 25px; display: flex; flex-direction: column; overflow: hidden; }
         .scroll-v { flex: 1; overflow: auto; border: 1px solid #eee; margin-top: 15px; }
         
-        table { width: 100%; border-collapse: collapse; min-width: 650px; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
         th, td { border: 1px solid #eee; padding: 10px; text-align: center; }
         th { background: #f8f5f2; position: sticky; top: 0; }
         .admin-input { width: 40px; padding: 3px; text-align: center; border: 1px solid #ddd; }
@@ -61,7 +63,6 @@
         .size-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
         .size-option { padding: 15px; border: 1px solid #ddd; border-radius: 10px; text-align: center; cursor: pointer; background: #fff; }
         .size-option:disabled { background: #f0f0f0; color: #ccc; cursor: not-allowed; }
-        .size-option.has-stock:hover { background: #fdf5f0; border-color: var(--main-brown); }
     </style>
 </head>
 <body>
@@ -77,7 +78,7 @@
             <strong>🛒 購物清單</strong>
             <div id="cart-list" style="margin-top: 10px; min-height: 50px;"></div>
             <input type="number" id="discount" class="big-input" placeholder="折扣金額" oninput="calc()">
-            <input type="text" id="order-note" placeholder="備註原因 (例: 員工折扣)" style="width:100%; padding:10px; box-sizing:border-box; border-radius:8px; border:1px solid #ccc;">
+            <input type="text" id="order-note" placeholder="備註原因" style="width:100%; padding:10px; box-sizing:border-box; border-radius:8px; border:1px solid #ccc;">
             <div class="total-display">$<span id="final-total">0</span></div>
             
             <div class="pay-row">
@@ -96,7 +97,7 @@
         </div>
 
         <div class="card" style="border-color: #ffcccc; background-color: #fff9f9;">
-            <strong>📢 補貨提醒 (缺貨清單)</strong>
+            <strong>📢 補貨提醒 (僅限現貨)</strong>
             <div id="stock-alert-list" style="font-size: 0.9em; margin-top:10px; max-height: 150px; overflow-y: auto;"></div>
         </div>
 
@@ -126,7 +127,7 @@
 <div id="admin-modal" class="modal">
     <div class="modal-content">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h3>🛠️ 管理中心 (款式尺寸/獨立顯隱)</h3>
+            <h3>🛠️ 管理中心 (現貨/預購分類模式)</h3>
             <button onclick="closeM('admin-modal')">✕ 關閉</button>
         </div>
         <div style="background:#f0fdf4; padding:12px; margin:10px 0; display:flex; gap:5px; flex-wrap:wrap; border-radius:10px;">
@@ -135,11 +136,11 @@
             <input type="number" id="n-c" placeholder="成本" class="admin-input">
             <input type="number" id="n-p" placeholder="售價" class="admin-input">
             <button onclick="addP()" style="background:var(--profit-green); color:white; border:none; padding:5px 10px; border-radius:5px;">新增商品</button>
-            <button onclick="addC()">新增分類</button>
+            <button onclick="addC()" style="background:var(--accent-brown); color:white; border:none; padding:5px 10px; border-radius:5px;">新增分類</button>
         </div>
         <div class="scroll-v">
             <table>
-                <thead><tr><th>排序</th><th>品名</th><th>成本</th><th>售價</th><th>各尺寸管理 (庫存/顯示)</th><th>款顯</th><th>刪除</th></tr></thead>
+                <thead><tr><th>排序</th><th>品名</th><th>成本</th><th>售價</th><th>各尺寸庫存與顯隱</th><th>款顯</th><th>刪除</th></tr></thead>
                 <tbody id="admin-tbody"></tbody>
             </table>
         </div>
@@ -151,7 +152,7 @@
         <div style="display:flex; justify-content:space-between; align-items:center;"><h3>📜 歷史紀錄</h3><button onclick="closeM('history-modal')">✕</button></div>
         <div style="margin:10px 0;">月份：<input type="month" id="h-month" onchange="renderH()"><button onclick="exportXLS()">📥 匯出 Excel</button></div>
         <div id="h-sum" style="padding:10px; background:#fff5eb; border-radius:10px; font-weight:bold; margin-bottom:10px;"></div>
-        <div class="scroll-v"><table><thead><tr><th>時間</th><th>品項</th><th>總額</th><th>毛利</th><th>操作</th></tr></thead><tbody id="h-tbody"></tbody></table></div>
+        <div class="scroll-v"><table><thead><tr><th>時間</th><th>品項</th><th>總額</th><th>毛利</th><th>備註</th><th>操作</th></tr></thead><tbody id="h-tbody"></tbody></table></div>
     </div>
 </div>
 
@@ -189,7 +190,7 @@
         area.innerHTML = ''; nav.innerHTML = '';
         inv.forEach((cat, ci) => {
             nav.innerHTML += `<button class="nav-btn" onclick="document.getElementById('cat-${ci}').scrollIntoView({behavior:'smooth'})">${cat.cat}</button>`;
-            let h = `<div id="cat-${ci}" class="cat-title">${cat.cat}</div><div class="product-grid">`;
+            let h = `<div id="cat-${ci}" class="cat-title">${cat.cat} ${cat.isPre ? '<span class="preorder-tag">預購區</span>' : ''}</div><div class="product-grid">`;
             (cat.items || []).forEach((it, ii) => {
                 if (it.show === false) return;
                 h += `<div class="p-btn" onclick="openSizePicker(${ci}, ${ii})">
@@ -209,15 +210,15 @@
         grid.innerHTML = '';
         
         SIZES.forEach(sz => {
-            // 檢查該尺寸是否被隱藏
             const isShown = (it.sizeShow && it.sizeShow[sz] !== false);
-            if (!isShown) return; // 被隱藏的尺寸不顯示
-
+            if (!isShown) return;
             const stock = it.sizes ? (it.sizes[sz] || 0) : 0;
             const btn = document.createElement('button');
-            btn.className = 'size-option' + (stock > 0 ? ' has-stock' : '');
-            btn.disabled = stock <= 0;
-            btn.innerHTML = `<strong>${sz}</strong><br><span style="font-size:0.8em">${stock > 0 ? '存:'+stock : '缺貨'}</span>`;
+            btn.className = 'size-option';
+            // 預購商品不檢查庫存鎖死按鈕，但顯示庫存參考
+            const isPre = inv[ci].isPre;
+            if (!isPre && stock <= 0) btn.disabled = true;
+            btn.innerHTML = `<strong>${sz}</strong><br><span style="font-size:0.8em">${isPre ? '預購' : (stock > 0 ? '存:'+stock : '缺貨')}</span>`;
             btn.onclick = () => { addCart(it.n, it.p, it.c, sz, ci, ii); closeM('size-modal'); };
             grid.appendChild(btn);
         });
@@ -228,42 +229,49 @@
         const alertBox = document.getElementById('stock-alert-list');
         let alerts = [];
         inv.forEach(cat => {
+            if (cat.isPre) return; // 💡 關鍵：如果分類是「預購」，直接跳過提醒
             (cat.items || []).forEach(it => {
-                if (it.show === false) return; // 款式隱藏則不提醒
+                if (it.show === false) return;
                 SIZES.forEach(sz => {
                     const isShown = (it.sizeShow && it.sizeShow[sz] !== false);
                     const s = it.sizes ? (it.sizes[sz] || 0) : 0;
-                    // 只有「顯示中」且「缺貨」的尺寸才提醒
                     if (isShown && s <= 0) alerts.push(`${it.n} (${sz})`);
                 });
             });
         });
-        alertBox.innerHTML = alerts.length ? alerts.map(a => `<div class="stock-alert-item">${a}<span>缺貨</span></div>`).join('') : '<div style="color:#999;text-align:center;">目前無缺貨</div>';
+        alertBox.innerHTML = alerts.length ? alerts.map(a => `<div class="stock-alert-item">${a}<span>缺貨</span></div>`).join('') : '<div style="color:#999;text-align:center;">現貨庫存充足</div>';
     }
 
     function renderAdmin() {
         const tbody = document.getElementById('admin-tbody'); tbody.innerHTML = '';
         inv.forEach((cat, ci) => {
-            tbody.innerHTML += `<tr style="background:#f4f4f4"><td colspan="6" align="left"><b>📁 ${cat.cat}</b></td><td><button onclick="delC(${ci})" style="color:red">刪除</button></td></tr>`;
+            tbody.innerHTML += `<tr style="background:#e8e0d9">
+                <td colspan="5" align="left">
+                    <b>📁 分類：${cat.cat}</b> 
+                    <label style="margin-left:20px; color:blue; font-size:0.9em;">
+                        <input type="checkbox" ${cat.isPre ? 'checked' : ''} onchange="updCat(${ci}, 'isPre', this.checked)"> 🌐 網路預購 (不列入補貨提醒)
+                    </label>
+                </td>
+                <td><button onclick="editC(${ci})">改名</button></td>
+                <td><button onclick="delC(${ci})" style="color:red">刪除</button></td>
+            </tr>`;
             (cat.items || []).forEach((it, ii) => {
-                let sizeControls = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:#fff;padding:5px;border-radius:5px;">`;
+                let szCtrl = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:#fff;padding:5px;border-radius:5px;">`;
                 SIZES.forEach(sz => {
                     const sVal = it.sizes ? (it.sizes[sz] || 0) : 0;
                     const isChecked = (it.sizeShow && it.sizeShow[sz] !== false) ? 'checked' : '';
-                    sizeControls += `<div style="font-size:10px;border:1px solid #eee;padding:2px;">
-                        ${sz}<br>
-                        <input type="number" value="${sVal}" onchange="updSize(${ci},${ii},'${sz}',this.value)" class="admin-input"><br>
-                        <input type="checkbox" ${isChecked} onchange="updSizeShow(${ci},${ii},'${sz}',this.checked)" title="顯/隱">
+                    szCtrl += `<div style="font-size:10px;border:1px solid #eee;padding:2px;">
+                        ${sz}<br><input type="number" value="${sVal}" onchange="updSize(${ci},${ii},'${sz}',this.value)" class="admin-input"><br>
+                        <input type="checkbox" ${isChecked} onchange="updSizeShow(${ci},${ii},'${sz}',this.checked)">
                     </div>`;
                 });
-                sizeControls += `</div>`;
-
+                szCtrl += `</div>`;
                 tbody.innerHTML += `<tr>
                     <td><button onclick="move(${ci},${ii},-1)">↑</button><button onclick="move(${ci},${ii},1)">↓</button></td>
                     <td><input type="text" value="${it.n}" onchange="upd(${ci},${ii},'n',this.value)" style="width:100px"></td>
                     <td><input type="number" value="${it.c}" onchange="upd(${ci},${ii},'c',this.value)" class="admin-input"></td>
                     <td><input type="number" value="${it.p}" onchange="upd(${ci},${ii},'p',this.value)" class="admin-input"></td>
-                    <td>${sizeControls}</td>
+                    <td>${szCtrl}</td>
                     <td><input type="checkbox" ${it.show !== false ? 'checked' : ''} onchange="upd(${ci},${ii},'show',this.checked)"></td>
                     <td onclick="delI(${ci},${ii})" style="color:red;cursor:pointer">✕</td>
                 </tr>`;
@@ -271,43 +279,35 @@
         });
     }
 
-    function updSizeShow(ci, ii, sz, v) {
-        if(!inv[ci].items[ii].sizeShow) inv[ci].items[ii].sizeShow = {};
-        inv[ci].items[ii].sizeShow[sz] = v;
-        db.ref('inventory').set(inv);
-    }
-
-    function updSize(ci, ii, sz, v) {
-        if(!inv[ci].items[ii].sizes) inv[ci].items[ii].sizes = {};
-        inv[ci].items[ii].sizes[sz] = Number(v);
-        db.ref('inventory').set(inv);
-    }
-
+    function updCat(ci, k, v) { inv[ci][k] = v; db.ref('inventory').set(inv); }
+    function updSize(ci, ii, sz, v) { if(!inv[ci].items[ii].sizes) inv[ci].items[ii].sizes={}; inv[ci].items[ii].sizes[sz]=Number(v); db.ref('inventory').set(inv); }
+    function updSizeShow(ci, ii, sz, v) { if(!inv[ci].items[ii].sizeShow) inv[ci].items[ii].sizeShow={}; inv[ci].items[ii].sizeShow[sz]=v; db.ref('inventory').set(inv); }
+    function upd(ci, ii, k, v) { inv[ci].items[ii][k] = (k==='n'||k==='show'?v:Number(v)); db.ref('inventory').set(inv); }
+    
     function addP() {
         const ci = document.getElementById('sel-cat').value, n = document.getElementById('n-n').value, c = Number(document.getElementById('n-c').value)||0, p = Number(document.getElementById('n-p').value)||0;
         if(!n) return;
-        const sObj = {}; const showObj = {};
-        SIZES.forEach(s => { sObj[s] = 0; showObj[s] = true; });
+        const sObj = {}; const showObj = {}; SIZES.forEach(s => { sObj[s] = 0; showObj[s] = true; });
         inv[ci].items.push({n, c, p, show:true, sizes: sObj, sizeShow: showObj});
         db.ref('inventory').set(inv);
     }
+    function addC() { let n = prompt("分類名"); if(n){ inv.push({cat:n, items:[], isPre: false}); db.ref('inventory').set(inv); }}
+    function editC(ci) { let n = prompt("改名", inv[ci].cat); if(n){ inv[ci].cat=n; db.ref('inventory').set(inv); }}
 
-    // 基礎功能保留
-    function upd(ci, ii, k, v) { inv[ci].items[ii][k] = (k==='n'||k==='show'?v:Number(v)); db.ref('inventory').set(inv); }
+    // 結帳與基礎功能保持
     function addCart(n, p, c, sz, ci, ii) { cart.push({n: `${n} (${sz})`, p, c, sz, ci, ii}); renderCart(); }
     function renderCart() { document.getElementById('cart-list').innerHTML = cart.map((it, i) => `<div style="display:flex;justify-content:space-between;padding:5px 0;"><span>${it.n}</span><span onclick="cart.splice(${i},1);renderCart()" style="color:red;cursor:pointer;">✕</span></div>`).join(''); calc(); }
     function calc() { const s = cart.reduce((a, b) => a + b.p, 0), d = Number(document.getElementById('discount').value) || 0; const f = s - d; document.getElementById('final-total').innerText = f; const c = Number(document.getElementById('cash-in').value) || 0; document.getElementById('change').innerText = c > f ? c - f : 0; }
     function setPay(m) { payM = m; document.getElementById('btn-cash').className = m === '現金' ? 'pay-btn active' : 'pay-btn'; document.getElementById('btn-elec').className = m === '電支' ? 'pay-btn active' : 'pay-btn'; }
     function checkout() { if (!cart.length) return; cart.forEach(item => { if(inv[item.ci].items[item.ii].sizes) inv[item.ci].items[item.ii].sizes[item.sz]--; }); const t = Number(document.getElementById('final-total').innerText); const cost = cart.reduce((a, b) => a + (b.c || 0), 0); const d = document.getElementById('is-backdate').checked && document.getElementById('backdate-val').value ? document.getElementById('backdate-val').value.replace(/-/g,'/') : new Date().toLocaleDateString('zh-TW'); db.ref('orders').push({d, t: new Date().toLocaleTimeString('zh-TW',{hour12:false}), items: cart.map(i=>i.n).join(', '), total: t, profit: t - cost, pay: payM, dis: Number(document.getElementById('discount').value)||0, note: document.getElementById('order-note').value}); db.ref('inventory').set(inv); alert("結帳完成！"); cart = []; renderCart(); }
-    function generateReport() { const today = new Date().toLocaleDateString('zh-TW'); const todayOrders = orders.filter(o => o.d === today); if (!todayOrders.length) return alert("今日無資料"); let cash = 0, elec = 0, dis = 0, prof = 0; todayOrders.forEach(o => { if(o.pay==='現金') cash+=o.total; else elec+=o.total; dis+=o.dis; prof+=o.profit; }); document.getElementById('report-body').innerHTML = `總收：$${cash+elec}<br>現金：$${cash} | 電支：$${elec}<br>毛利：$${prof}<br>折扣：$${dis}`; openM('report-modal'); }
-    function renderLog() { const today = new Date().toLocaleDateString('zh-TW'); const tOrders = orders.filter(o => o.d === today).reverse().slice(0, 10); document.getElementById('today-log').innerHTML = tOrders.map(o => `<div class="log-item"><span>[${o.t}] $${o.total}</span><button class="btn-del-record" onclick="refund('${o.key}')">🔴 刪除</button></div>`).join(''); }
-    function renderH() { const m = document.getElementById('h-month').value; if(!m) return; const f = orders.filter(o => o.d.includes(m.replace('-','/'))); let rev = 0, prof = 0; document.getElementById('h-tbody').innerHTML = f.reverse().map(o => { rev += o.total; prof += (o.profit||0); return `<tr><td>${o.d} ${o.t}</td><td>${o.items}</td><td>$${o.total}</td><td>$${o.profit}</td><td><button onclick="refund('${o.key}')">退</button></td></tr>`; }).join(''); document.getElementById('h-sum').innerText = `本月收：$${rev} | 毛利：$${prof}`; }
+    function generateReport() { const today = new Date().toLocaleDateString('zh-TW'); const tOrders = orders.filter(o => o.d === today); if (!tOrders.length) return alert("今日無資料"); let cash = 0, elec = 0, dis = 0, prof = 0; tOrders.forEach(o => { if(o.pay==='現金') cash+=o.total; else elec+=o.total; dis+=o.dis; prof+=o.profit; }); document.getElementById('report-body').innerHTML = `總收：$${cash+elec}<br>現金：$${cash} | 電支：$${elec}<br>毛利：$${prof}<br>折扣：$${dis}`; openM('report-modal'); }
+    function renderLog() { const today = new Date().toLocaleDateString('zh-TW'); const tOrders = orders.filter(o => o.d === today).reverse().slice(0, 10); document.getElementById('today-log').innerHTML = tOrders.map(o => `<div class="log-item"><span>[${o.t}] $${o.total}</span><button class="btn-del-record" onclick="refund('${o.key}')">🔴</button></div>`).join(''); }
+    function renderH() { const m = document.getElementById('h-month').value; if(!m) return; const f = orders.filter(o => o.d.includes(m.replace('-','/'))); let rev = 0, prof = 0; document.getElementById('h-tbody').innerHTML = f.reverse().map(o => { rev += o.total; prof += (o.profit||0); return `<tr><td>${o.d} ${o.t}</td><td>${o.items}</td><td>$${o.total}</td><td>$${o.profit}</td><td>${o.note||''}</td><td><button onclick="refund('${o.key}')">退</button></td></tr>`; }).join(''); document.getElementById('h-sum').innerText = `本月收：$${rev} | 毛利：$${prof}`; }
     function refund(k) { if(confirm("確定刪除？")) db.ref('orders').child(k).remove(); }
     function exportXLS() { const ws = XLSX.utils.json_to_sheet(orders); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Sales"); XLSX.writeFile(wb, "Sales.xlsx"); }
     function openM(id) { document.getElementById(id).style.display = 'flex'; if(id==='history-modal') renderH(); }
     function closeM(id) { document.getElementById(id).style.display = 'none'; }
     function move(ci, ii, d) { let l = inv[ci].items; if(ii+d>=0 && ii+d<l.length){ [l[ii], l[ii+d]]=[l[ii+d], l[ii]]; db.ref('inventory').set(inv); }}
-    function addC() { let n = prompt("分類名"); if(n){ inv.push({cat:n, items:[]}); db.ref('inventory').set(inv); }}
     function delC(ci) { if(confirm("刪除分類？")) { inv.splice(ci,1); db.ref('inventory').set(inv); }}
     function delI(ci, ii) { if(confirm("刪除商品？")) { inv[ci].items.splice(ii,1); db.ref('inventory').set(inv); }}
 
