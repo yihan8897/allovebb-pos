@@ -2,8 +2,8 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🧸 LITTLE NOOK POS - 終極功能保留版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧸 LITTLE NOOK POS - 完全保留版</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -12,13 +12,15 @@
     <style>
         :root { --main-brown: #b0a496; --bg-cream: #fcf8f5; --accent-brown: #8c7b6c; --price-red: #d9534f; --profit-green: #6b8e23; }
         
-        /* 核心修正：取消 overflow: hidden，讓整頁可滑動 */
-        body { 
-            font-family: sans-serif; 
-            background: var(--bg-cream); 
-            margin: 0; 
-            padding-bottom: 50px; /* 留底空間 */
+        /* 核心修正：解除高度鎖定，讓整頁可以自然捲動 */
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg-cream);
+            font-family: sans-serif;
             color: #5d5246;
+            overflow-y: auto !important; /* 強制開啟垂直捲動 */
+            height: auto !important;
         }
 
         header { 
@@ -26,11 +28,10 @@
             color: white; 
             padding: 15px; 
             text-align: center; 
-            font-size: 1.3em; 
             font-weight: bold; 
             position: sticky; 
             top: 0; 
-            z-index: 1000; 
+            z-index: 1001; 
         }
 
         .nav-bar { 
@@ -40,62 +41,67 @@
             gap: 10px; 
             overflow-x: auto; 
             position: sticky; 
-            top: 55px; 
-            z-index: 999;
+            top: 50px; 
+            z-index: 1000;
             border-bottom: 2px solid #d1c7bc;
         }
 
         .nav-btn { background: white; border: 1px solid #d1c7bc; padding: 8px 18px; border-radius: 20px; white-space: nowrap; cursor: pointer; }
 
-        /* 內容區塊改為一般流體佈局 */
-        .container { display: flex; flex-wrap: wrap; padding: 10px; gap: 10px; }
-        
+        /* 內容佈局：電腦版左右、手機版上下，但不限制高度 */
+        .container { 
+            display: flex; 
+            flex-wrap: wrap; 
+            padding: 15px; 
+            gap: 15px; 
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
         /* 商品區 */
-        .item-section { flex: 2; min-width: 300px; }
-        .cat-title { background: #fdf5f0; padding: 10px 15px; border-radius: 20px; margin: 20px 0 10px; font-weight: bold; border-left: 8px solid var(--main-brown); }
-        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; }
-        .p-btn { background: white; border: 1px solid #f0e6dd; border-radius: 12px; padding: 12px 5px; text-align: center; cursor: pointer; box-shadow: 2px 2px 0 #e8e0d9; }
-        .p-name { font-size: 0.9em; font-weight: bold; margin-bottom: 5px; }
+        .item-section { flex: 2; min-width: 320px; }
+        .cat-title { background: #fdf5f0; padding: 10px 15px; border-radius: 20px; margin: 25px 0 10px; font-weight: bold; border-left: 8px solid var(--main-brown); }
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+        .p-btn { background: white; border: 1px solid #f0e6dd; border-radius: 12px; padding: 15px 5px; text-align: center; cursor: pointer; box-shadow: 3px 3px 0 #e8e0d9; }
+        .p-name { font-weight: bold; font-size: 0.9em; margin-bottom: 5px; }
         .p-price { color: #c2966d; font-weight: bold; }
 
-        /* 結帳區 */
+        /* 結帳控制區 */
         .checkout-section { flex: 1; min-width: 320px; }
-        .card { background: white; border-radius: 15px; padding: 15px; border: 2px solid #e8e0d9; margin-bottom: 10px; }
+        .card { background: white; border-radius: 15px; padding: 20px; border: 2px solid #e8e0d9; margin-bottom: 15px; }
         
-        .cart-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; }
-        .big-input { font-size: 1.8em; width: 100%; border-radius: 10px; border: 2px solid #d1c7bc; text-align: right; box-sizing: border-box; background: #fffcf5; padding: 10px; margin: 8px 0; font-weight: bold; }
-        .total-display { font-size: 3.5em; font-weight: bold; color: var(--price-red); text-align: right; margin: 10px 0; }
+        .big-input { font-size: 2em; width: 100%; border-radius: 10px; border: 2px solid #d1c7bc; text-align: right; box-sizing: border-box; background: #fffcf5; padding: 10px; margin: 8px 0; font-weight: bold; }
+        .total-display { font-size: 4em; font-weight: bold; color: var(--price-red); text-align: right; margin: 10px 0; line-height: 1; }
         
         .pay-row { display: flex; gap: 8px; margin: 10px 0; }
         .pay-btn { flex: 1; padding: 15px; border-radius: 10px; border: 1px solid #ccc; background: white; font-weight: bold; cursor: pointer; }
-        .pay-btn.active { background: var(--accent-brown); color: white; }
+        .pay-btn.active { background: var(--accent-brown); color: white; border-color: var(--accent-brown); }
 
         /* 彈窗樣式 */
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: none; justify-content: center; align-items: center; }
-        .modal-content { background: white; width: 95%; height: 90vh; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; overflow: hidden; }
-        .table-wrapper { flex: 1; overflow: auto; border: 1px solid #eee; margin-top: 10px; }
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: none; justify-content: center; align-items: center; padding: 20px; }
+        .modal-content { background: white; width: 100%; max-width: 900px; max-height: 90vh; border-radius: 20px; padding: 25px; display: flex; flex-direction: column; }
+        .scroll-v { flex: 1; overflow: auto; border: 1px solid #eee; margin-top: 15px; }
         
         table { width: 100%; border-collapse: collapse; min-width: 500px; }
         th, td { border: 1px solid #eee; padding: 10px; text-align: center; }
         th { background: #f8f5f2; position: sticky; top: 0; }
-        
-        .admin-input { width: 50px; padding: 5px; text-align: center; }
+        .admin-input { width: 55px; padding: 5px; text-align: center; border: 1px solid #ddd; }
     </style>
 </head>
 <body>
 
-<header>🧸 LITTLE NOOK POS 系統</header>
+<header>🧸 LITTLE NOOK POS 管理系統</header>
 <div class="nav-bar" id="navbar"></div>
 
 <div class="container">
-    <div class="item-section" id="item-area">同步中...</div>
+    <div class="item-section" id="item-area">同步雲端資料中...</div>
 
     <div class="checkout-section">
         <div class="card">
             <strong>🛒 購物清單</strong>
-            <div id="cart-list" style="max-height: 200px; overflow-y: auto; margin-top: 10px;"></div>
+            <div id="cart-list" style="margin-top: 10px; min-height: 50px;"></div>
             <input type="number" id="discount" class="big-input" placeholder="折扣金額" oninput="calc()">
-            <input type="text" id="order-note" placeholder="備註原因" style="width:100%; padding:8px; box-sizing:border-box; margin-bottom:5px;">
+            <input type="text" id="order-note" placeholder="備註原因 (例: 員工折扣)" style="width:100%; padding:10px; box-sizing:border-box; border-radius:8px; border:1px solid #ccc;">
             <div class="total-display">$<span id="final-total">0</span></div>
             
             <div class="pay-row">
@@ -106,52 +112,55 @@
             <input type="number" id="cash-in" class="big-input" placeholder="實收金額" oninput="calc()">
             <div style="text-align:right;">找零: <span id="change" style="color:red; font-weight:bold; font-size:1.5em;">0</span></div>
             
-            <div style="margin: 10px 0; background:#f9f9f9; padding:10px; border-radius:8px;">
-                <label><input type="checkbox" id="is-backdate"> 補登日期</label>
-                <input type="date" id="backdate-val">
+            <div style="margin: 15px 0; background:#f9f9f9; padding:12px; border-radius:10px; border: 1px solid #eee;">
+                <label style="cursor:pointer;"><input type="checkbox" id="is-backdate"> 📅 補登過去日期</label>
+                <input type="date" id="backdate-val" style="width:100%; margin-top:5px;">
             </div>
             <button onclick="checkout()" style="width:100%; padding:20px; background:var(--profit-green); color:white; border:none; border-radius:15px; font-size:1.5em; font-weight:bold; cursor:pointer;">結帳完成</button>
         </div>
 
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <strong>📋 今日紀錄</strong>
-                <button onclick="generateReport()" style="background:var(--accent-brown); color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">📊 結帳報表</button>
+                <strong>📋 今日最近 10 筆紀錄</strong>
+                <button onclick="generateReport()" style="background:var(--accent-brown); color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer;">📊 生成報表</button>
             </div>
-            <div id="today-log" style="font-size: 0.9em; margin-top:10px;"></div>
+            <div id="today-log" style="font-size: 0.9em; margin-top:10px; line-height: 1.8;"></div>
         </div>
 
-        <div style="display:flex; gap:10px;">
-            <button onclick="openM('admin-modal')" style="flex:1; padding:15px; border-radius:10px; cursor:pointer; font-weight:bold;">🛠️ 商品管理</button>
-            <button onclick="openM('history-modal')" style="flex:1; padding:15px; border-radius:10px; cursor:pointer; font-weight:bold;">📜 歷史統計</button>
+        <div style="display:flex; gap:10px; padding-bottom: 50px;">
+            <button onclick="openM('admin-modal')" style="flex:1; padding:15px; border-radius:10px; cursor:pointer; font-weight:bold; background:white; border:2px solid var(--main-brown);">🛠️ 管理中心</button>
+            <button onclick="openM('history-modal')" style="flex:1; padding:15px; border-radius:10px; cursor:pointer; font-weight:bold; background:white; border:2px solid var(--main-brown);">📜 歷史報表</button>
         </div>
     </div>
 </div>
 
 <div id="report-modal" class="modal">
-    <div class="modal-content" style="height:auto; max-width:400px;">
-        <h2 style="text-align:center;">📝 今日銷售結帳單</h2>
-        <div id="report-body" style="line-height:2;"></div>
-        <button id="send-google-btn" onclick="sendToGoogle()" style="width:100%; padding:15px; background:#4285f4; color:white; border:none; border-radius:10px; margin-top:10px; font-weight:bold;">🔗 傳送到 Google 試算表</button>
-        <button onclick="closeM('report-modal')" style="width:100%; padding:10px; margin-top:5px; border:none;">關閉</button>
+    <div class="modal-content" style="max-width:400px; height:auto;">
+        <h2 style="text-align:center;">📝 今日銷售報表</h2>
+        <div id="report-body" style="line-height:2; background:#fffaf5; padding:15px; border-radius:10px;"></div>
+        <button id="send-google-btn" onclick="sendToGoogle()" style="width:100%; padding:15px; background:#4285f4; color:white; border:none; border-radius:10px; margin-top:15px; font-weight:bold; font-size:1.1em;">🔗 傳送到 Google 試算表</button>
+        <button onclick="closeM('report-modal')" style="width:100%; padding:10px; margin-top:5px; border:none; background:none;">關閉</button>
     </div>
 </div>
 
 <div id="admin-modal" class="modal">
     <div class="modal-content">
-        <div style="display:flex; justify-content:space-between;"><h3>🛠️ 商品與分類管理</h3><button onclick="closeM('admin-modal')">✕ 關閉</button></div>
-        <div style="background:#f0fdf4; padding:10px; margin:10px 0; display:flex; gap:5px; flex-wrap:wrap;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3>🛠️ 商品/分類/排序/成本 管理</h3>
+            <button onclick="closeM('admin-modal')">✕ 關閉</button>
+        </div>
+        <div style="background:#f0fdf4; padding:12px; margin:10px 0; display:flex; gap:5px; flex-wrap:wrap; border-radius:10px;">
             <select id="sel-cat"></select>
-            <input type="text" id="n-n" placeholder="品名" style="width:100px;">
-            <input type="number" id="n-c" placeholder="成本" style="width:50px;">
-            <input type="number" id="n-p" placeholder="售價" style="width:50px;">
-            <input type="number" id="n-s" placeholder="庫存" style="width:50px;">
-            <button onclick="addP()">新增商品</button>
+            <input type="text" id="n-n" placeholder="品名" style="width:110px;">
+            <input type="number" id="n-c" placeholder="成本" class="admin-input">
+            <input type="number" id="n-p" placeholder="售價" class="admin-input">
+            <input type="number" id="n-s" placeholder="庫存" class="admin-input">
+            <button onclick="addP()" style="background:var(--profit-green); color:white; border:none; padding:5px 10px; border-radius:5px;">新增</button>
             <button onclick="addC()">新分類</button>
         </div>
-        <div class="table-wrapper">
+        <div class="scroll-v">
             <table>
-                <thead><tr><th>排序</th><th>品名</th><th>成本</th><th>售價</th><th>庫存</th><th>操作</th></tr></thead>
+                <thead><tr><th>排序</th><th>品名</th><th>成本</th><th>售價</th><th>庫存</th><th>刪除</th></tr></thead>
                 <tbody id="admin-tbody"></tbody>
             </table>
         </div>
@@ -160,15 +169,18 @@
 
 <div id="history-modal" class="modal">
     <div class="modal-content">
-        <div style="display:flex; justify-content:space-between;"><h3>📜 歷史紀錄與統計</h3><button onclick="closeM('history-modal')">✕ 關閉</button></div>
-        <div style="margin:10px 0;">
-            <input type="month" id="h-month" onchange="renderH()">
-            <button onclick="exportXLS()" style="background:#217346; color:white; border:none; padding:5px 10px; border-radius:5px;">匯出 Excel</button>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3>📜 歷史紀錄/退貨/Excel</h3>
+            <button onclick="closeM('history-modal')">✕ 關閉</button>
         </div>
-        <div id="h-sum" style="padding:10px; background:#fff5eb; border-radius:10px; font-weight:bold;"></div>
-        <div class="table-wrapper">
+        <div style="margin:10px 0;">
+            選擇月份：<input type="month" id="h-month" onchange="renderH()">
+            <button onclick="exportXLS()" style="background:#217346; color:white; border:none; padding:5px 10px; border-radius:5px; margin-left:10px;">📥 匯出 Excel</button>
+        </div>
+        <div id="h-sum" style="padding:10px; background:#fff5eb; border-radius:10px; font-weight:bold; color:var(--accent-brown);"></div>
+        <div class="scroll-v">
             <table>
-                <thead><tr><th>時間</th><th>品項</th><th>金額</th><th>毛利</th><th>備註</th><th>操作</th></tr></thead>
+                <thead><tr><th>時間</th><th>品項</th><th>總計</th><th>毛利</th><th>支付</th><th>操作</th></tr></thead>
                 <tbody id="h-tbody"></tbody>
             </table>
         </div>
@@ -217,7 +229,7 @@
 
     function addCart(n, p, c) { cart.push({n, p, c}); renderCart(); }
     function renderCart() {
-        document.getElementById('cart-list').innerHTML = cart.map((it, i) => `<div class="cart-item"><span>${it.n}</span><span onclick="cart.splice(${i},1);renderCart()" style="color:red;cursor:pointer;">✕</span></div>`).join('');
+        document.getElementById('cart-list').innerHTML = cart.map((it, i) => `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f0f0f0;"><span>${it.n}</span><span onclick="cart.splice(${i},1);renderCart()" style="color:red;cursor:pointer;">✕</span></div>`).join('');
         calc();
     }
     function calc() {
@@ -243,32 +255,32 @@
         };
         cart.forEach(c => { inv.forEach(cat => { (cat.items || []).forEach(it => { if(it.n === c.n) it.s--; }); }); });
         db.ref('orders').push(order); db.ref('inventory').set(inv);
-        alert("結帳完成！"); cart = []; renderCart(); document.getElementById('discount').value=''; document.getElementById('cash-in').value=''; document.getElementById('order-note').value='';
+        alert("結帳成功！"); cart = []; renderCart(); document.getElementById('discount').value=''; document.getElementById('cash-in').value=''; document.getElementById('order-note').value='';
     }
 
     function generateReport() {
         const today = new Date().toLocaleDateString('zh-TW');
         const todayOrders = orders.filter(o => o.d === today);
-        if (!todayOrders.length) return alert("今天沒資料");
+        if (!todayOrders.length) return alert("今日尚無銷售");
         let cash = 0, elec = 0, dis = 0, prof = 0;
         todayOrders.forEach(o => { if(o.pay==='現金') cash+=o.total; else elec+=o.total; dis+=o.dis; prof+=o.profit; });
         currentReport = { date: today, cash, elec, discount: dis, profit: prof, total: cash+elec, items: todayOrders.length + "筆" };
-        document.getElementById('report-body').innerHTML = `總營業額：$${cash+elec}<br>現金收入：$${cash}<br>電支收入：$${elec}<br>總計毛利：$${prof}<br>總折扣：$${dis}`;
+        document.getElementById('report-body').innerHTML = `總營收：$${cash+elec}<br>現金：$${cash} | 電支：$${elec}<br>預估毛利：$${prof}<br>總折扣：$${dis}`;
         openM('report-modal');
     }
 
     function sendToGoogle() {
-        const btn = document.getElementById('send-google-btn'); btn.innerText = "傳送中...";
+        const btn = document.getElementById('send-google-btn'); btn.innerText = "正在傳送到 Google...";
         fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(currentReport) })
-        .then(() => { alert("已傳送到 Google！"); btn.innerText = "🔗 傳送到 Google 試算表"; closeM('report-modal'); })
-        .catch(() => { alert("錯誤"); btn.innerText = "🔗 傳送到 Google 試算表"; });
+        .then(() => { alert("✅ 已成功同步到 Google 試算表！"); btn.innerText = "🔗 傳送到 Google 試算表"; closeM('report-modal'); })
+        .catch(() => { alert("同步失敗"); btn.innerText = "🔗 傳送到 Google 試算表"; });
     }
 
-    // --- 管理 (全功能保留) ---
+    // --- 管理功能 (100% 保留) ---
     function renderAdmin() {
         const tbody = document.getElementById('admin-tbody'); tbody.innerHTML = '';
         inv.forEach((cat, ci) => {
-            tbody.innerHTML += `<tr style="background:#f4f4f4"><td colspan="5" align="left"><b>${cat.cat}</b> <button onclick="editC(${ci})">改名</button></td><td><button onclick="delC(${ci})" style="color:red">刪除</button></td></tr>`;
+            tbody.innerHTML += `<tr style="background:#f4f4f4"><td colspan="5" align="left"><b>📂 ${cat.cat}</b> <button onclick="editC(${ci})">改名</button></td><td><button onclick="delC(${ci})" style="color:red">刪除分類</button></td></tr>`;
             (cat.items || []).forEach((it, ii) => {
                 tbody.innerHTML += `<tr>
                     <td><button onclick="move(${ci},${ii},-1)">↑</button><button onclick="move(${ci},${ii},1)">↓</button></td>
@@ -283,14 +295,14 @@
     }
     function upd(ci, ii, k, v) { inv[ci].items[ii][k] = (k==='n'?v:Number(v)); db.ref('inventory').set(inv); }
     function move(ci, ii, d) { let l = inv[ci].items; if(ii+d>=0 && ii+d<l.length){ [l[ii], l[ii+d]]=[l[ii+d], l[ii]]; db.ref('inventory').set(inv); }}
-    function addC() { let n = prompt("分類名"); if(n){ inv.push({cat:n, items:[]}); db.ref('inventory').set(inv); }}
-    function editC(ci) { let n = prompt("改名", inv[ci].cat); if(n){ inv[ci].cat=n; db.ref('inventory').set(inv); }}
-    function delC(ci) { if(confirm("刪除分類？")) { inv.splice(ci,1); db.ref('inventory').set(inv); }}
+    function addC() { let n = prompt("新分類名稱"); if(n){ inv.push({cat:n, items:[]}); db.ref('inventory').set(inv); }}
+    function editC(ci) { let n = prompt("修改分類名稱", inv[ci].cat); if(n){ inv[ci].cat=n; db.ref('inventory').set(inv); }}
+    function delC(ci) { if(confirm("確定刪除分類？")) { inv.splice(ci,1); db.ref('inventory').set(inv); }}
     function addP() {
         const ci = document.getElementById('sel-cat').value, n = document.getElementById('n-n').value, c = Number(document.getElementById('n-c').value)||0, p = Number(document.getElementById('n-p').value)||0, s = Number(document.getElementById('n-s').value)||0;
         if(!n) return; inv[ci].items.push({n,c,p,s}); db.ref('inventory').set(inv); document.getElementById('n-n').value='';
     }
-    function delI(ci, ii) { if(confirm("刪除商品？")) { inv[ci].items.splice(ii,1); db.ref('inventory').set(inv); }}
+    function delI(ci, ii) { if(confirm("確定刪除商品？")) { inv[ci].items.splice(ii,1); db.ref('inventory').set(inv); }}
 
     function renderLog() {
         const today = new Date().toLocaleDateString('zh-TW');
@@ -303,12 +315,12 @@
         let rev = 0, prof = 0;
         document.getElementById('h-tbody').innerHTML = f.reverse().map(o => {
             rev += o.total; prof += (o.profit||0);
-            return `<tr><td>${o.d} ${o.t}</td><td>${o.items}</td><td>$${o.total}</td><td>$${o.profit}</td><td>${o.note||''}</td><td><button onclick="refund('${o.key}')">退</button></td></tr>`;
+            return `<tr><td>${o.d} ${o.t}</td><td>${o.items}</td><td>$${o.total}</td><td>$${o.profit}</td><td>${o.pay}</td><td><button onclick="refund('${o.key}')">退</button></td></tr>`;
         }).join('');
-        document.getElementById('h-sum').innerText = `月收：$${rev} | 毛利：$${prof}`;
+        document.getElementById('h-sum').innerText = `本月營收：$${rev} | 預估毛利：$${prof}`;
     }
-    function refund(k) { if(confirm("確定退貨？")) db.ref('orders').child(k).remove(); }
-    function exportXLS() { const ws = XLSX.utils.json_to_sheet(orders); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Orders"); XLSX.writeFile(wb, "Sales.xlsx"); }
+    function refund(k) { if(confirm("確定要退貨嗎？")) db.ref('orders').child(k).remove(); }
+    function exportXLS() { const ws = XLSX.utils.json_to_sheet(orders); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Sales"); XLSX.writeFile(wb, "LittleNook_Sales.xlsx"); }
     function openM(id) { document.getElementById(id).style.display = 'flex'; if(id==='history-modal') renderH(); }
     function closeM(id) { document.getElementById(id).style.display = 'none'; }
 
