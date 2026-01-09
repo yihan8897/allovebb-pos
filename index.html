@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title> Allove Baby POS</title>
+    <title>🧸 Allove Baby POS</title>
     
     <link rel="icon" href="https://lh3.googleusercontent.com/d/1HyGwEiGZuK0iOJ0dTVPeu5WcU2gdNa4g">
     <link rel="apple-touch-icon" href="https://lh3.googleusercontent.com/d/1HyGwEiGZuK0iOJ0dTVPeu5WcU2gdNa4g">
@@ -17,7 +17,6 @@
     
     <style>
         :root { --main-brown: #b0a496; --bg-cream: #fcf8f5; --accent-brown: #8c7b6c; --price-red: #d9534f; --profit-green: #6b8e23; --preorder-blue: #5bc0de; }
-        
         html, body { margin: 0; padding: 0; background: var(--bg-cream); font-family: sans-serif; color: #5d5246; overflow-y: auto !important; height: auto !important; }
         header { background: var(--main-brown); color: white; padding: 15px; text-align: center; font-weight: bold; position: sticky; top: 0; z-index: 1001; }
         .nav-bar { background: #e8e0d9; padding: 10px; display: flex; gap: 10px; overflow-x: auto; position: sticky; top: 50px; z-index: 1000; border-bottom: 2px solid #d1c7bc; }
@@ -32,35 +31,28 @@
         .p-price { color: #c2966d; font-weight: bold; }
         .checkout-section { flex: 1; min-width: 320px; }
         .card { background: white; border-radius: 15px; padding: 20px; border: 2px solid #e8e0d9; margin-bottom: 15px; }
-        
         .big-input { font-size: 2em; width: 100%; border-radius: 10px; border: 2px solid #d1c7bc; text-align: right; box-sizing: border-box; background: #fffcf5; padding: 10px; margin: 8px 0; font-weight: bold; }
         .total-display { font-size: 4em; font-weight: bold; color: var(--price-red); text-align: right; margin: 10px 0; line-height: 1; }
-        
         .pay-row { display: flex; gap: 8px; margin: 10px 0; }
         .pay-btn { flex: 1; padding: 15px; border-radius: 10px; border: 1px solid #ccc; background: white; font-weight: bold; cursor: pointer; font-size: 1.1em; }
         .pay-btn.active { background: var(--accent-brown); color: white; border-color: var(--accent-brown); }
-
         .size-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
         .size-option { padding: 15px; border: 1px solid #ddd; border-radius: 10px; text-align: center; cursor: pointer; background: #fff; line-height: 1.3; }
         .size-option strong { font-size: 1.8em; display: block; }
         .size-option span { font-size: 1.2em; color: #888; }
         .size-option:disabled { background: #f0f0f0; color: #ccc; cursor: not-allowed; }
-
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: none; justify-content: center; align-items: center; padding: 20px; }
         .modal-content { background: white; width: 100%; max-width: 1000px; max-height: 90vh; border-radius: 20px; padding: 25px; display: flex; flex-direction: column; overflow: hidden; }
         .scroll-v { flex: 1; overflow: auto; border: 1px solid #eee; margin-top: 15px; }
-        
         table { width: 100%; border-collapse: collapse; min-width: 800px; }
         th, td { border: 1px solid #eee; padding: 10px; text-align: center; }
         th { background: #f8f5f2; position: sticky; top: 0; }
         .admin-input { width: 45px; padding: 3px; border: 1px solid #ddd; }
-        
         .log-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #f0f0f0; background: #fafafa; border-radius: 8px; margin-bottom: 5px; }
-        .btn-del-record { background: #ffeded; color: #d9534f; border: 1px solid #d9534f; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em; font-weight: bold; }
-        
+        .btn-refund { background: #ffeded; color: #d9534f; border: 1px solid #d9534f; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em; font-weight: bold; }
+        .is-refunded { text-decoration: line-through; color: #bbb !important; }
         .hot-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #eee; font-size: 0.9em; }
         .hot-rank { background: #c2966d; color: white; padding: 2px 8px; border-radius: 5px; margin-right: 5px; font-weight: bold; }
-
         @media print { .no-print { display: none !important; } .modal { position: absolute; background: white; display: flex !important; } }
     </style>
 </head>
@@ -81,16 +73,13 @@
             <input type="number" id="discount" class="big-input" placeholder="折扣金額" oninput="calc()">
             <input type="text" id="order-note" placeholder="備註原因/客戶姓名" style="width:100%; padding:10px; box-sizing:border-box; border-radius:8px; border:1px solid #ccc;">
             <div class="total-display">$<span id="final-total">0</span></div>
-            
             <div class="pay-row">
                 <button id="btn-cash" class="pay-btn active" onclick="setPay('現金')">💵 現金</button>
                 <button id="btn-elec" class="pay-btn" onclick="setPay('電支')">📱 電支</button>
                 <button id="btn-mall" class="pay-btn" onclick="setPay('網路商城')">🌐 商城</button>
             </div>
-            
             <input type="number" id="cash-in" class="big-input" placeholder="實收金額" oninput="calc()">
             <div style="text-align:right;">找零: <span id="change" style="color:red; font-weight:bold; font-size:1.5em;">0</span></div>
-            
             <div style="margin: 15px 0; background:#f9f9f9; padding:12px; border-radius:10px; border: 1px solid #eee;">
                 <label style="cursor:pointer;"><input type="checkbox" id="is-backdate"> 📅 補登日期</label>
                 <input type="date" id="backdate-val" style="width:100%; margin-top:5px;">
@@ -133,7 +122,6 @@
     const firebaseConfig = { apiKey: "AIzaSyA-cxLaa0z17gjPYYmXJBFHhlvnHZMn0Wk", authDomain: "allove-75af5.firebaseapp.com", databaseURL: "https://allove-75af5-default-rtdb.firebaseio.com/", projectId: "allove-75af5", storageBucket: "allove-75af5.firebasestorage.app", messagingSenderId: "1046256611808", appId: "1:1046256611808:web:8b7ede065e065a72c5fb85" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    
     let inv = []; let orders = []; let cart = []; let payM = '現金';
     const SIZES = ['80', '90', '100', '110', '120', '130', '140'];
 
@@ -203,6 +191,7 @@
         const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         const hotMap = {};
         orders.forEach(o => {
+            if (o.isRefund) return;
             const orderDate = new Date(o.d.replace(/\//g, '-'));
             if (orderDate >= sevenDaysAgo) {
                 const itemNames = o.items.split(', ');
@@ -239,68 +228,75 @@
     function addC() { let n = prompt("分類名"); if(n){ inv.push({cat:n, items:[], isPre: false}); db.ref('inventory').set(inv); }}
     function editC(ci) { let n = prompt("改名", inv[ci].cat); if(n){ inv[ci].cat=n; db.ref('inventory').set(inv); }}
 
-    function addCart(n, p, c, sz, ci, ii) { cart.push({n: `${n} (${sz})`, p, c, sz, ci, ii}); renderCart(); }
-    function renderCart() { document.getElementById('cart-list').innerHTML = cart.map((it, i) => `<div style="display:flex;justify-content:space-between;padding:5px 0;"><span>${it.n}</span><span onclick="cart.splice(${i},1);renderCart()" style="color:red;cursor:pointer;">✕</span></div>`).join(''); calc(); }
+    function addCart(n, p, c, sz, ci, ii) { cart.push({n: n, p: p, c: c, sz: sz, ci: ci, ii: ii}); renderCart(); }
+    function renderCart() { document.getElementById('cart-list').innerHTML = cart.map((it, i) => `<div style="display:flex;justify-content:space-between;padding:5px 0;"><span>${it.n} (${it.sz})</span><span onclick="cart.splice(${i},1);renderCart()" style="color:red;cursor:pointer;">✕</span></div>`).join(''); calc(); }
     function calc() { const s = cart.reduce((a, b) => a + b.p, 0), d = Number(document.getElementById('discount').value) || 0; const f = s - d; document.getElementById('final-total').innerText = f; const c = Number(document.getElementById('cash-in').value) || 0; document.getElementById('change').innerText = c > f ? c - f : 0; }
-    
-    function setPay(m) { 
-        payM = m; 
-        document.getElementById('btn-cash').className = m === '現金' ? 'pay-btn active' : 'pay-btn'; 
-        document.getElementById('btn-elec').className = m === '電支' ? 'pay-btn active' : 'pay-btn'; 
-        document.getElementById('btn-mall').className = m === '網路商城' ? 'pay-btn active' : 'pay-btn'; 
-    }
+    function setPay(m) { payM = m; document.getElementById('btn-cash').className = m === '現金' ? 'pay-btn active' : 'pay-btn'; document.getElementById('btn-elec').className = m === '電支' ? 'pay-btn active' : 'pay-btn'; document.getElementById('btn-mall').className = m === '網路商城' ? 'pay-btn active' : 'pay-btn'; }
 
     function checkout() {
         if (!cart.length) return;
+        const details = cart.map(i => ({n: i.n, sz: i.sz, ci: i.ci, ii: i.ii}));
         cart.forEach(item => { if(inv[item.ci].items[item.ii].sizes) inv[item.ci].items[item.ii].sizes[item.sz]--; });
         const t = Number(document.getElementById('final-total').innerText);
         const cost = cart.reduce((a, b) => a + (b.c || 0), 0);
         const d = document.getElementById('is-backdate').checked && document.getElementById('backdate-val').value ? document.getElementById('backdate-val').value.replace(/-/g,'/') : new Date().toLocaleDateString('zh-TW');
-        const orderData = {d, t: new Date().toLocaleTimeString('zh-TW',{hour12:false}), items: cart.map(i=>i.n).join(', '), total: t, profit: t - cost, pay: payM, dis: Number(document.getElementById('discount').value)||0, note: document.getElementById('order-note').value};
+        const orderData = {d, t: new Date().toLocaleTimeString('zh-TW',{hour12:false}), items: cart.map(i=>`${i.n} (${i.sz})`).join(', '), details: details, total: t, profit: t - cost, pay: payM, dis: Number(document.getElementById('discount').value)||0, note: document.getElementById('order-note').value, isRefund: false};
         db.ref('orders').push(orderData);
         db.ref('inventory').set(inv);
         if(payM === '網路商城') {
             document.getElementById('inv-date').innerText = '日期：' + orderData.d;
             document.getElementById('inv-id').innerText = '單號：' + Date.now().toString().slice(-6);
             document.getElementById('inv-cust').innerText = orderData.note || '未填寫';
-            document.getElementById('inv-body').innerHTML = cart.map(i => `<tr><td>${i.n}</td><td style="text-align:right;">1</td><td style="text-align:right;">$${i.p}</td></tr>`).join('');
+            document.getElementById('inv-body').innerHTML = cart.map(i => `<tr><td>${i.n} (${i.sz})</td><td style="text-align:right;">1</td><td style="text-align:right;">$${i.p}</td></tr>`).join('');
             document.getElementById('inv-total').innerText = t;
             openM('invoice-modal');
         } else { alert("結帳完成！"); }
         cart = []; renderCart(); document.getElementById('order-note').value = ''; document.getElementById('discount').value = ''; document.getElementById('cash-in').value = '';
     }
 
-    function generateReport() { const today = new Date().toLocaleDateString('zh-TW'); const tOrders = orders.filter(o => o.d === today); if (!tOrders.length) return alert("今日無資料"); let cash = 0, elec = 0, mall = 0, dis = 0, prof = 0; tOrders.forEach(o => { if(o.pay==='現金') cash+=o.total; else if(o.pay==='電支') elec+=o.total; else mall+=o.total; dis+=o.dis; prof+=o.profit; }); document.getElementById('report-body').innerHTML = `今日總額：$${cash+elec+mall}<br>現金：$${cash}<br>電支：$${elec}<br>商城：$${mall}<br>毛利：$${prof}<br>折扣：$${dis}`; openM('report-modal'); }
-    function renderLog() { const today = new Date().toLocaleDateString('zh-TW'); const tOrders = orders.filter(o => o.d === today).reverse().slice(0, 5); document.getElementById('today-log').innerHTML = tOrders.map(o => `<div class="log-item"><span>[${o.t}] $${o.total}</span><button class="btn-del-record" onclick="refund('${o.key}')">🔴</button></div>`).join(''); }
+    function processRefund(k) {
+        if(!confirm("確定要進行退貨？此操作將：\n1. 回補庫存\n2. 標記紀錄為已退貨")) return;
+        const order = orders.find(o => o.key === k);
+        if(!order || order.isRefund) return;
+        // 回補庫存邏輯
+        if(order.details) {
+            order.details.forEach(item => {
+                try {
+                    if(inv[item.ci] && inv[item.ci].items[item.ii]) {
+                        if(!inv[item.ci].items[item.ii].sizes) inv[item.ci].items[item.ii].sizes = {};
+                        inv[item.ci].items[item.ii].sizes[item.sz]++;
+                    }
+                } catch(e) { console.error("庫存回補失敗", e); }
+            });
+        }
+        // 更新訂單狀態
+        db.ref('orders').child(k).update({ isRefund: true, total: 0, profit: 0, dis: 0 });
+        db.ref('inventory').set(inv);
+        alert("退貨成功，庫存已加回！");
+    }
 
+    function generateReport() { const today = new Date().toLocaleDateString('zh-TW'); const tOrders = orders.filter(o => o.d === today && !o.isRefund); if (!tOrders.length) return alert("今日無資料"); let cash = 0, elec = 0, mall = 0, dis = 0, prof = 0; tOrders.forEach(o => { if(o.pay==='現金') cash+=o.total; else if(o.pay==='電支') elec+=o.total; else mall+=o.total; dis+=o.dis; prof+=o.profit; }); document.getElementById('report-body').innerHTML = `今日總額：$${cash+elec+mall}<br>現金：$${cash}<br>電支：$${elec}<br>商城：$${mall}<br>毛利：$${prof}<br>折扣：$${dis}`; openM('report-modal'); }
+    function renderLog() { const today = new Date().toLocaleDateString('zh-TW'); const tOrders = orders.filter(o => o.d === today).reverse().slice(0, 5); document.getElementById('today-log').innerHTML = tOrders.map(o => `<div class="log-item"><span class="${o.isRefund?'is-refunded':''}">[${o.t}] $${o.total} ${o.isRefund?'(已退)':''}</span>${!o.isRefund?`<button class="btn-refund" onclick="processRefund('${o.key}')">🔴</button>`:''}</div>`).join(''); }
     function renderH() {
-        const mInput = document.getElementById('h-month').value; 
-        if(!mInput) return;
+        const mInput = document.getElementById('h-month').value; if(!mInput) return;
         const parts = mInput.split('-'); const y = parts[0]; const m = parseInt(parts[1], 10).toString();
         const f = orders.filter(o => { const od = o.d.split('/'); return od[0] === y && od[1] === m; });
         let rev = 0, prof = 0;
         document.getElementById('h-tbody').innerHTML = f.slice().reverse().map(o => {
-            rev += o.total; prof += (o.profit||0);
-            return `<tr><td>${o.d} ${o.t}</td><td>${o.items}</td><td>$${o.total}</td><td>$${o.profit}</td><td>${o.pay}</td><td><button onclick="refund('${o.key}')">退</button></td></tr>`;
+            if(!o.isRefund) { rev += o.total; prof += (o.profit||0); }
+            return `<tr class="${o.isRefund?'is-refunded':''}"><td>${o.d} ${o.t}</td><td>${o.items}</td><td>$${o.total}</td><td>$${o.profit}</td><td>${o.pay}</td><td>${!o.isRefund?`<button onclick="processRefund('${o.key}')">退</button>`:'已退'}</td></tr>`;
         }).join('');
-        document.getElementById('h-sum').innerText = `${y}/${m} 月紀錄 | 總收：$${rev} | 毛利：$${prof}`;
+        document.getElementById('h-sum').innerText = `${y}/${m} 月紀錄 | 實收：$${rev} | 毛利：$${prof}`;
     }
-
-    function refund(k) { if(confirm("確定刪除紀錄？")) db.ref('orders').child(k).remove(); }
-    
     function exportXLS() { 
-        const mappedOrders = orders.map(o => ({ "日期": o.d, "時間": o.t, "銷售品項": o.items, "結帳總額": o.total, "預估毛利": o.profit, "支付方式": o.pay, "折扣金額": o.dis, "備註/客戶姓名": o.note }));
-        const ws = XLSX.utils.json_to_sheet(mappedOrders); const wb = XLSX.utils.book_new(); 
-        XLSX.utils.book_append_sheet(wb, ws, "銷售報表"); 
-        XLSX.writeFile(wb, `Allove_Baby_Sales_${new Date().toLocaleDateString()}.xlsx`); 
+        const mappedOrders = orders.map(o => ({ "日期": o.d, "時間": o.t, "銷售品項": o.items, "結帳總額": o.isRefund ? 0 : o.total, "預估毛利": o.isRefund ? 0 : o.profit, "支付方式": o.pay, "折扣金額": o.isRefund ? 0 : o.dis, "備註/客戶姓名": o.note + (o.isRefund ? " (此單已退貨)" : "") }));
+        const ws = XLSX.utils.json_to_sheet(mappedOrders); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "銷售報表"); XLSX.writeFile(wb, `Allove_Baby_Sales_${new Date().toLocaleDateString()}.xlsx`); 
     }
-    
     function openM(id) { document.getElementById(id).style.display = 'flex'; if(id==='history-modal') renderH(); }
     function closeM(id) { document.getElementById(id).style.display = 'none'; }
     function move(ci, ii, d) { let l = inv[ci].items; if(ii+d>=0 && ii+d<l.length){ [l[ii], l[ii+d]]=[l[ii+d], l[ii]]; db.ref('inventory').set(inv); }}
     function delC(ci) { if(confirm("刪除分類？")) { inv.splice(ci,1); db.ref('inventory').set(inv); }}
     function delI(ci, ii) { if(confirm("刪除商品？")) { inv[ci].items.splice(ii,1); db.ref('inventory').set(inv); }}
-
     init();
 </script>
 </body>
