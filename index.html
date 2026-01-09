@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🧸 Allove Baby POS - 專業管理版</title>
+    <title>🧸 Allove Baby POS - 專業出貨版</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -24,8 +24,8 @@
         .preorder-tag { font-size: 0.7em; background: var(--preorder-blue); color: white; padding: 2px 8px; border-radius: 10px; margin-left: 10px; }
         
         .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
-        .p-btn { background: white; border: 1px solid #f0e6dd; border-radius: 12px; padding: 15px 5px; text-align: center; cursor: pointer; box-shadow: 3px 3px 0 #e8e0d9; position: relative; }
-        .p-name { font-weight: bold; font-size: 0.9em; margin-bottom: 5px; }
+        .p-btn { background: white; border: 1px solid #f0e6dd; border-radius: 12px; padding: 15px 5px; text-align: center; cursor: pointer; box-shadow: 3px 3px 0 #e8e0d9; }
+        .p-name { font-weight: bold; font-size: 0.9em; }
         .p-price { color: #c2966d; font-weight: bold; }
         
         .checkout-section { flex: 1; min-width: 320px; }
@@ -35,47 +35,46 @@
         .total-display { font-size: 4em; font-weight: bold; color: var(--price-red); text-align: right; margin: 10px 0; line-height: 1; }
         
         .pay-row { display: flex; gap: 5px; margin: 10px 0; flex-wrap: wrap; }
-        .pay-btn { flex: 1; min-width: 80px; padding: 12px 5px; border-radius: 10px; border: 1px solid #ccc; background: white; font-weight: bold; cursor: pointer; font-size: 0.9em; }
+        .pay-btn { flex: 1; min-width: 80px; padding: 12px 5px; border-radius: 10px; border: 1px solid #ccc; background: white; font-weight: bold; cursor: pointer; }
         .pay-btn.active { background: var(--accent-brown); color: white; border-color: var(--accent-brown); }
 
-        /* 彈窗樣式 */
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: none; justify-content: center; align-items: center; padding: 20px; }
         .modal-content { background: white; width: 100%; max-width: 1000px; max-height: 90vh; border-radius: 20px; padding: 25px; display: flex; flex-direction: column; overflow: hidden; }
         .scroll-v { flex: 1; overflow: auto; border: 1px solid #eee; margin-top: 15px; }
         
-        table { width: 100%; border-collapse: collapse; min-width: 800px; }
-        th, td { border: 1px solid #eee; padding: 10px; text-align: center; }
-        th { background: #f8f5f2; position: sticky; top: 0; }
-        .admin-input { width: 45px; padding: 3px; text-align: center; border: 1px solid #ddd; }
+        /* 尺寸按鈕大字體 */
+        .size-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 15px; }
+        .size-option { padding: 20px 10px; border: 1px solid #ddd; border-radius: 12px; text-align: center; cursor: pointer; background: #fff; }
+        .size-option strong { font-size: 1.8em; color: var(--accent-brown); } /* 尺寸數字超大 */
+        .size-option small { font-size: 1.1em; color: #888; display: block; margin-top: 5px; }
+        .size-option:disabled { background: #f5f5f5; color: #ccc; }
 
         .pending-item { background: #fff9f2; border: 1px solid #fce4cc; padding: 10px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .pending-item:hover { background: #fce4cc; }
 
-        .size-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
-        .size-option { padding: 15px; border: 1px solid #ddd; border-radius: 10px; text-align: center; cursor: pointer; background: #fff; }
-        .size-option:disabled { background: #f0f0f0; color: #ccc; cursor: not-allowed; }
+        /* 出貨單專用樣式 */
+        #invoice-print { padding: 40px; color: #333; line-height: 1.6; }
+        .inv-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .inv-table th, .inv-table td { border-bottom: 1px solid #ddd; padding: 12px; text-align: left; }
+        @media print { .no-print { display: none; } body { background: white; } .modal { position: absolute; background: white; } }
     </style>
 </head>
 <body>
 
-<header>Allove Baby POS 系統</header>
-<div class="nav-bar" id="navbar"></div>
+<header class="no-print">Allove Baby POS 管理系統</header>
+<div class="nav-bar no-print" id="navbar"></div>
 
-<div class="container">
-    <div class="item-section" id="item-area">讀取中...</div>
+<div class="container no-print">
+    <div class="item-section" id="item-area">讀取雲端中...</div>
 
     <div class="checkout-section">
         <div class="card">
             <div style="display:flex; gap:5px;">
-                <input type="text" id="cust-name" placeholder="👤 客戶姓名 (暫存用)" style="flex:2; padding:10px; border-radius:8px; border:1px solid #ccc;">
+                <input type="text" id="cust-name" placeholder="👤 客戶姓名 (暫存/出貨用)" style="flex:2; padding:10px; border-radius:8px; border:1px solid #ccc;">
                 <button onclick="savePending()" style="flex:1; background:var(--pending-orange); color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">📥 暫存</button>
             </div>
-            <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
-            <strong>🛒 當前購物車</strong>
-            <div id="cart-list" style="margin-top: 10px; min-height: 50px; max-height: 200px; overflow-y: auto;"></div>
-            
-            <input type="number" id="discount" class="big-input" placeholder="折扣" oninput="calc()">
-            <input type="text" id="order-note" placeholder="備註原因 (如：社團併單、瑕疵折價)" style="width:100%; padding:10px; box-sizing:border-box; border-radius:8px; border:1px solid #ccc;">
+            <div id="cart-list" style="margin-top: 15px; min-height: 50px; max-height: 250px; overflow-y: auto;"></div>
+            <input type="number" id="discount" class="big-input" placeholder="折扣金額" oninput="calc()">
+            <input type="text" id="order-note" placeholder="備註原因 (例: 抽獎贈品)" style="width:100%; padding:10px; box-sizing:border-box; border-radius:8px; border:1px solid #ccc;">
             <div class="total-display">$<span id="final-total">0</span></div>
             
             <div class="pay-row">
@@ -84,7 +83,7 @@
                 <button class="pay-btn" id="btn-mall" onclick="setPay('網路商城')">🌐 商城</button>
             </div>
             
-            <input type="number" id="cash-in" class="big-input" placeholder="實收" oninput="calc()">
+            <input type="number" id="cash-in" class="big-input" placeholder="實收金額" oninput="calc()">
             <div style="text-align:right;">找零: <span id="change" style="color:red; font-weight:bold; font-size:1.5em;">0</span></div>
             
             <div style="margin: 10px 0; background:#f9f9f9; padding:10px; border-radius:10px;">
@@ -95,36 +94,78 @@
         </div>
 
         <div class="card" style="border-color: var(--pending-orange);">
-            <strong>⌛ 暫存掛單 (點擊回填合併)</strong>
-            <div id="pending-list" style="margin-top:10px; max-height:150px; overflow-y:auto;"></div>
+            <strong>⌛ 暫存掛單 (合併結帳)</strong>
+            <div id="pending-list" style="margin-top:10px;"></div>
         </div>
 
         <div class="card" style="border-color: #ffcccc; background:#fff9f9;">
             <strong>📢 補貨提醒 (僅現貨)</strong>
-            <div id="stock-alert-list" style="font-size: 0.85em; margin-top:10px;"></div>
+            <div id="stock-alert-list" style="font-size: 0.9em; margin-top:10px;"></div>
         </div>
 
-        <div style="display:flex; gap:10px; margin-bottom: 50px;">
-            <button onclick="openM('admin-modal')" style="flex:1; padding:15px; border-radius:10px; cursor:pointer; font-weight:bold; background:white; border:2px solid var(--main-brown);">🛠️ 管理</button>
-            <button onclick="openM('history-modal')" style="flex:1; padding:15px; border-radius:10px; cursor:pointer; font-weight:bold; background:white; border:2px solid var(--main-brown);">📜 報表</button>
+        <div style="display:flex; gap:10px; padding-bottom: 50px;">
+            <button onclick="openM('admin-modal')" style="flex:1; padding:15px; border-radius:10px; cursor:pointer; font-weight:bold; background:white; border:2px solid var(--main-brown);">🛠️ 管理中心</button>
+            <button onclick="openM('history-modal')" style="flex:1; padding:15px; border-radius:10px; cursor:pointer; font-weight:bold; background:white; border:2px solid var(--main-brown);">📜 報表紀錄</button>
         </div>
     </div>
 </div>
 
-<div id="size-modal" class="modal"><div class="modal-content" style="max-width:400px;"><h3 id="size-modal-title"></h3><div id="size-modal-grid" class="size-grid"></div><button onclick="closeM('size-modal')" style="margin-top:20px; padding:10px; border:none; border-radius:10px;">取消</button></div></div>
+<div id="invoice-modal" class="modal">
+    <div class="modal-content" style="max-width: 800px; padding:0;">
+        <div id="invoice-print">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom: 3px solid #333; padding-bottom: 10px;">
+                <div>
+                    <h1 style="margin:0; color:var(--accent-brown);">Allove Baby</h1>
+                    <p style="margin:5px 0;">出貨明細單 / Packing Slip</p>
+                </div>
+                <div style="text-align:right;">
+                    <p id="inv-date"></p>
+                    <p id="inv-id" style="font-weight:bold;"></p>
+                </div>
+            </div>
+            <div style="margin-top:20px; display:flex; justify-content:space-between;">
+                <div><strong>客戶姓名：</strong> <span id="inv-cust"></span></div>
+                <div><strong>支付方式：</strong> <span id="inv-pay"></span></div>
+            </div>
+            <table class="inv-table">
+                <thead><tr><th>商品名稱 (尺寸)</th><th style="text-align:right;">數量</th><th style="text-align:right;">單價</th></tr></thead>
+                <tbody id="inv-body"></tbody>
+            </table>
+            <div style="text-align:right; margin-top:30px;">
+                <p>折扣：-$<span id="inv-dis"></span></p>
+                <h2 style="margin:0;">總計金額：$<span id="inv-total"></span></h2>
+            </div>
+            <div style="margin-top:50px; border-top: 1px dashed #ccc; padding-top:10px; font-size:0.9em; color:#666;">
+                * 謝謝您的購買！如有尺寸不合請於三日內聯繫客服。
+            </div>
+        </div>
+        <div class="no-print" style="padding:20px; display:flex; gap:10px; background:#f9f9f9;">
+            <button onclick="window.print()" style="flex:1; padding:15px; background:var(--profit-green); color:white; border:none; border-radius:10px; font-weight:bold;">🖨️ 確認列印 (A4)</button>
+            <button onclick="closeM('invoice-modal')" style="flex:1; padding:15px; background:#ccc; border:none; border-radius:10px;">關閉視窗</button>
+        </div>
+    </div>
+</div>
+
+<div id="size-modal" class="modal">
+    <div class="modal-content" style="max-width:400px; height:auto;">
+        <h2 id="size-modal-title" style="margin-top:0; text-align:center;">選擇尺寸</h2>
+        <div id="size-modal-grid" class="size-grid"></div>
+        <button onclick="closeM('size-modal')" style="width:100%; padding:15px; margin-top:20px; border:none; background:#eee; border-radius:10px; font-weight:bold;">取消</button>
+    </div>
+</div>
 
 <div id="admin-modal" class="modal">
     <div class="modal-content">
         <div style="display:flex; justify-content:space-between; align-items:center;"><h3>🛠️ 管理中心</h3><button onclick="closeM('admin-modal')">✕</button></div>
-        <div style="background:#f0fdf4; padding:10px; margin:10px 0; display:flex; gap:5px; flex-wrap:wrap; border-radius:10px;">
+        <div style="background:#f0fdf4; padding:10px; margin:10px 0; display:flex; gap:5px; border-radius:10px;">
             <select id="sel-cat"></select>
-            <input type="text" id="n-n" placeholder="品名" style="width:100px;">
+            <input type="text" id="n-n" placeholder="品名" style="width:120px;">
             <input type="number" id="n-c" placeholder="成本" class="admin-input">
             <input type="number" id="n-p" placeholder="售價" class="admin-input">
-            <button onclick="addP()" style="background:var(--profit-green); color:white; border:none; padding:5px 10px; border-radius:5px;">新增商品</button>
-            <button onclick="addC()" style="background:var(--accent-brown); color:white; border:none; padding:5px 10px; border-radius:5px;">新增分類</button>
+            <button onclick="addP()" style="background:var(--profit-green); color:white; border:none; padding:5px 15px; border-radius:5px;">新增商品</button>
+            <button onclick="addC()">新增分類</button>
         </div>
-        <div class="scroll-v"><table><thead><tr><th>排序</th><th>品名</th><th>成本</th><th>售價</th><th>各尺寸庫存與顯隱</th><th>款顯</th><th>刪除</th></tr></thead><tbody id="admin-tbody"></tbody></table></div>
+        <div class="scroll-v"><table><thead><tr><th>排序</th><th>品名</th><th>成本</th><th>售價</th><th>各尺寸管理</th><th>款顯</th><th>刪除</th></tr></thead><tbody id="admin-tbody"></tbody></table></div>
     </div>
 </div>
 
@@ -133,7 +174,7 @@
         <div style="display:flex; justify-content:space-between; align-items:center;"><h3>📜 銷售紀錄</h3><button onclick="closeM('history-modal')">✕</button></div>
         <div style="margin:10px 0;">月份：<input type="month" id="h-month" onchange="renderH()"><button onclick="exportXLS()">📥 匯出 Excel</button></div>
         <div id="h-sum" style="padding:10px; background:#fff5eb; border-radius:10px; font-weight:bold; margin-bottom:10px;"></div>
-        <div class="scroll-v"><table><thead><tr><th>時間</th><th>品項</th><th>總額</th><th>毛利</th><th>方式</th><th>備註</th><th>操作</th></tr></thead><tbody id="h-tbody"></tbody></table></div>
+        <div class="scroll-v"><table><thead><tr><th>時間</th><th>品項</th><th>總額</th><th>毛利</th><th>方式</th><th>客戶/備註</th><th>操作</th></tr></thead><tbody id="h-tbody"></tbody></table></div>
     </div>
 </div>
 
@@ -154,146 +195,134 @@
 
     function init() {
         db.ref('inventory').on('value', snap => { inv = snap.val() || []; renderUI(); renderAdmin(); renderStockAlert(); });
-        db.ref('orders').on('value', snap => {
-            const d = snap.val(); orders = d ? Object.keys(d).map(k => ({...d[k], key: k})) : [];
-        });
-        db.ref('pending').on('value', snap => {
-            const d = snap.val(); pending = d ? Object.keys(d).map(k => ({...d[k], key: k})) : [];
-            renderPending();
-        });
+        db.ref('orders').on('value', snap => { const d = snap.val(); orders = d ? Object.keys(d).map(k => ({...d[k], key: k})) : []; });
+        db.ref('pending').on('value', snap => { const d = snap.val(); pending = d ? Object.keys(d).map(k => ({...d[k], key: k})) : []; renderPending(); });
     }
 
-    // --- 核心暫存/掛單邏輯 ---
+    // --- A4 出貨單生成邏輯 ---
+    function generateInvoice(orderData) {
+        document.getElementById('inv-date').innerText = '日期：' + orderData.d;
+        document.getElementById('inv-id').innerText = '單號：' + (Date.now().toString().slice(-8));
+        document.getElementById('inv-cust').innerText = orderData.cust || '現場賓客';
+        document.getElementById('inv-pay').innerText = orderData.pay;
+        document.getElementById('inv-dis').innerText = orderData.dis;
+        document.getElementById('inv-total').innerText = orderData.total;
+        
+        let bodyH = '';
+        cart.forEach(it => {
+            bodyH += `<tr><td>${it.n}</td><td style="text-align:right;">1</td><td style="text-align:right;">$${it.p}</td></tr>`;
+        });
+        document.getElementById('inv-body').innerHTML = bodyH;
+        openM('invoice-modal');
+    }
+
+    // --- 核心結帳邏輯 ---
+    function checkout() {
+        if (!cart.length) return;
+        const total = Number(document.getElementById('final-total').innerText);
+        const cost = cart.reduce((a, b) => a + (b.c || 0), 0);
+        const cust = document.getElementById('cust-name').value;
+        const note = document.getElementById('order-note').value;
+        const dis = Number(document.getElementById('discount').value) || 0;
+        const date = document.getElementById('is-backdate').checked && document.getElementById('backdate-val').value 
+                     ? document.getElementById('backdate-val').value.replace(/-/g,'/') : new Date().toLocaleDateString('zh-TW');
+
+        const orderData = { d: date, t: new Date().toLocaleTimeString('zh-TW',{hour12:false}), items: cart.map(i=>i.n).join(', '), total, profit: total - cost, pay: payM, dis, note, cust };
+
+        // 庫存扣除
+        cart.forEach(item => { if(inv[item.ci].items[item.ii].sizes) inv[item.ci].items[item.ii].sizes[item.sz]--; });
+        
+        // 存入 Firebase
+        db.ref('orders').push(orderData);
+        db.ref('inventory').set(inv);
+
+        // 如果是網路商城，顯示出貨單
+        if(payM === '網路商城') {
+            generateInvoice(orderData);
+        } else {
+            alert("結帳成功！");
+        }
+
+        cart = []; document.getElementById('cust-name').value = ''; renderCart();
+    }
+
+    // --- 暫存/尺寸按鈕功能 (保留) ---
     function savePending() {
         const name = document.getElementById('cust-name').value;
-        if(!name || !cart.length) return alert("請輸入姓名並確保購物車有商品");
+        if(!name || !cart.length) return alert("請輸入客戶姓名並選購商品");
         db.ref('pending').push({ name, cart, time: new Date().toLocaleString() });
-        cart = []; document.getElementById('cust-name').value = '';
-        renderCart(); alert("已掛單暫存");
+        cart = []; document.getElementById('cust-name').value = ''; renderCart();
     }
-
     function renderPending() {
         const box = document.getElementById('pending-list');
-        box.innerHTML = pending.map(p => `
-            <div class="pending-item" onclick="loadPending('${p.key}')">
-                <div><strong>${p.name}</strong><br><small>${p.cart.length}件 / ${p.time.split(' ')[1]}</small></div>
-                <button onclick="event.stopPropagation(); db.ref('pending').child('${p.key}').remove();" style="color:red; background:none; border:none;">✕</button>
-            </div>
-        `).join('') || '<div style="color:#999;text-align:center;">目前無掛單</div>';
+        box.innerHTML = pending.map(p => `<div class="pending-item" onclick="loadPending('${p.key}')"><div><strong>${p.name}</strong> (${p.cart.length}件)</div><button onclick="event.stopPropagation(); db.ref('pending').child('${p.key}').remove();" style="color:red;border:none;background:none;">✕</button></div>`).join('') || '<div style="color:#999;text-align:center;">無暫存掛單</div>';
     }
-
     function loadPending(key) {
         const p = pending.find(x => x.key === key);
-        if(p) {
-            if(cart.length && !confirm("購物車已有東西，要合併嗎？")) return;
-            cart = [...cart, ...p.cart];
-            document.getElementById('cust-name').value = p.name;
-            db.ref('pending').child(key).remove();
-            renderCart();
-        }
-    }
-
-    // --- UI 渲染 ---
-    function renderUI() {
-        const area = document.getElementById('item-area'), nav = document.getElementById('navbar');
-        area.innerHTML = ''; nav.innerHTML = '';
-        inv.forEach((cat, ci) => {
-            nav.innerHTML += `<button class="nav-btn" onclick="document.getElementById('cat-${ci}').scrollIntoView({behavior:'smooth'})">${cat.cat}</button>`;
-            let h = `<div id="cat-${ci}" class="cat-title">${cat.cat} ${cat.isPre ? '<span class="preorder-tag">預購區</span>' : ''}</div><div class="product-grid">`;
-            (cat.items || []).forEach((it, ii) => {
-                if (it.show === false) return;
-                h += `<div class="p-btn" onclick="openSizePicker(${ci}, ${ii})"><div class="p-name">${it.n}</div><div class="p-price">$${it.p}</div></div>`;
-            });
-            area.innerHTML += h + '</div>';
-        });
-        document.getElementById('sel-cat').innerHTML = inv.map((c,i)=>`<option value="${i}">${c.cat}</option>`).join('');
+        if(p) { cart = [...cart, ...p.cart]; document.getElementById('cust-name').value = p.name; db.ref('pending').child(key).remove(); renderCart(); }
     }
 
     function openSizePicker(ci, ii) {
         const it = inv[ci].items[ii]; document.getElementById('size-modal-title').innerText = it.n;
         const grid = document.getElementById('size-modal-grid'); grid.innerHTML = '';
         SIZES.forEach(sz => {
-            if (it.sizeShow && it.sizeShow[sz] === false) return;
-            const stock = it.sizes ? (it.sizes[sz] || 0) : 0;
+            if (it.sizeShow?.[sz] === false) return;
+            const s = it.sizes?.[sz] || 0;
             const btn = document.createElement('button'); btn.className = 'size-option';
-            if (!inv[ci].isPre && stock <= 0) btn.disabled = true;
-            btn.innerHTML = `<strong>${sz}</strong><br><small>${inv[ci].isPre ? '預購' : '存:'+stock}</small>`;
+            if (!inv[ci].isPre && s <= 0) btn.disabled = true;
+            btn.innerHTML = `<strong>${sz}</strong><small>${inv[ci].isPre ? '預購' : '存:'+s}</small>`;
             btn.onclick = () => { cart.push({n: `${it.n} (${sz})`, p: it.p, c: it.c, sz, ci, ii}); renderCart(); closeM('size-modal'); };
             grid.appendChild(btn);
         });
         openM('size-modal');
     }
 
-    function renderCart() { 
-        document.getElementById('cart-list').innerHTML = cart.map((it, i) => `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;"><span>${it.n}</span><span onclick="cart.splice(${i},1);renderCart()" style="color:red;cursor:pointer;">✕</span></div>`).join(''); 
-        calc(); 
+    // --- 基礎 UI 與管理保留 ---
+    function renderUI() {
+        const area = document.getElementById('item-area'), nav = document.getElementById('navbar');
+        area.innerHTML = ''; nav.innerHTML = '';
+        inv.forEach((cat, ci) => {
+            nav.innerHTML += `<button class="nav-btn" onclick="document.getElementById('cat-${ci}').scrollIntoView({behavior:'smooth'})">${cat.cat}</button>`;
+            let h = `<div id="cat-${ci}" class="cat-title">${cat.cat} ${cat.isPre ? '<span class="preorder-tag">預購區</span>' : ''}</div><div class="product-grid">`;
+            (cat.items || []).forEach((it, ii) => { if (it.show !== false) h += `<div class="p-btn" onclick="openSizePicker(${ci}, ${ii})"><div class="p-name">${it.n}</div><div class="p-price">$${it.p}</div></div>`; });
+            area.innerHTML += h + '</div>';
+        });
+        document.getElementById('sel-cat').innerHTML = inv.map((c,i)=>`<option value="${i}">${c.cat}</option>`).join('');
     }
-
-    function calc() { 
-        const s = cart.reduce((a, b) => a + b.p, 0), d = Number(document.getElementById('discount').value) || 0; 
-        const f = s - d; document.getElementById('final-total').innerText = f; 
-        const c = Number(document.getElementById('cash-in').value) || 0; 
-        document.getElementById('change').innerText = c > f ? c - f : 0; 
-    }
-
-    function setPay(m) { 
-        payM = m; 
-        ['cash','elec','mall'].forEach(id => document.getElementById('btn-'+id).classList.remove('active'));
-        const activeId = m==='現金'?'cash':(m==='電支'?'elec':'mall');
-        document.getElementById('btn-'+activeId).classList.add('active');
-    }
-
-    function checkout() {
-        if (!cart.length) return;
-        cart.forEach(item => { if(inv[item.ci].items[item.ii].sizes) inv[item.ci].items[item.ii].sizes[item.sz]--; });
-        const t = Number(document.getElementById('final-total').innerText);
-        const cost = cart.reduce((a, b) => a + (b.c || 0), 0);
-        const d = document.getElementById('is-backdate').checked && document.getElementById('backdate-val').value ? document.getElementById('backdate-val').value.replace(/-/g,'/') : new Date().toLocaleDateString('zh-TW');
-        db.ref('orders').push({d, t: new Date().toLocaleTimeString('zh-TW',{hour12:false}), items: cart.map(i=>i.n).join(', '), total: t, profit: t - cost, pay: payM, dis: Number(document.getElementById('discount').value)||0, note: document.getElementById('order-note').value, cust: document.getElementById('cust-name').value});
-        db.ref('inventory').set(inv);
-        alert("結帳完成！單據已存入歷史紀錄"); cart = []; document.getElementById('cust-name').value=''; renderCart(); 
-    }
-
-    // --- 管理功能 (100% 保留) ---
     function renderAdmin() {
         const tbody = document.getElementById('admin-tbody'); tbody.innerHTML = '';
         inv.forEach((cat, ci) => {
             tbody.innerHTML += `<tr style="background:#e8e0d9"><td colspan="5" align="left"><b>📁 ${cat.cat}</b> <label><input type="checkbox" ${cat.isPre?'checked':''} onchange="updCat(${ci},'isPre',this.checked)"> 預購模式</label></td><td><button onclick="editC(${ci})">名</button></td><td><button onclick="delC(${ci})" style="color:red">✕</button></td></tr>`;
             (cat.items || []).forEach((it, ii) => {
                 let szCtrl = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;">`;
-                SIZES.forEach(sz => {
-                    szCtrl += `<div style="font-size:9px;border:1px solid #eee;">${sz}<br><input type="number" value="${it.sizes?.[sz]||0}" onchange="updSize(${ci},${ii},'${sz}',this.value)" class="admin-input"><input type="checkbox" ${it.sizeShow?.[sz]!==false?'checked':''} onchange="updSizeShow(${ci},${ii},'${sz}',this.checked)"></div>`;
-                });
-                tbody.innerHTML += `<tr><td><button onclick="move(${ci},${ii},-1)">↑</button></td><td><input type="text" value="${it.n}" onchange="upd(${ci},${ii},'n',this.value)" style="width:80px"></td><td><input type="number" value="${it.c}" onchange="upd(${ci},${ii},'c',this.value)" class="admin-input"></td><td><input type="number" value="${it.p}" onchange="upd(${ci},${ii},'p',this.value)" class="admin-input"></td><td>${szCtrl}</div></td><td><input type="checkbox" ${it.show!==false?'checked':''} onchange="upd(${ci},${ii},'show',this.checked)"></td><td onclick="delI(${ci},${ii})" style="color:red">✕</td></tr>`;
+                SIZES.forEach(sz => { szCtrl += `<div style="font-size:9px;border:1px solid #eee;">${sz}<br><input type="number" value="${it.sizes?.[sz]||0}" onchange="updSize(${ci},${ii},'${sz}',this.value)" class="admin-input"><input type="checkbox" ${it.sizeShow?.[sz]!==false?'checked':''} onchange="updSizeShow(${ci},${ii},'${sz}',this.checked)"></div>`; });
+                tbody.innerHTML += `<tr><td><button onclick="move(${ci},${ii},-1)">↑</button></td><td><input type="text" value="${it.n}" onchange="upd(${ci},${ii},'n',this.value)" style="width:100px"></td><td><input type="number" value="${it.c}" onchange="upd(${ci},${ii},'c',this.value)" class="admin-input"></td><td><input type="number" value="${it.p}" onchange="upd(${ci},${ii},'p',this.value)" class="admin-input"></td><td>${szCtrl}</td><td><input type="checkbox" ${it.show!==false?'checked':''} onchange="upd(${ci},${ii},'show',this.checked)"></td><td onclick="delI(${ci},${ii})" style="color:red">✕</td></tr>`;
             });
         });
     }
-
     function renderStockAlert() {
         const alertBox = document.getElementById('stock-alert-list'); let alerts = [];
-        inv.forEach(cat => {
-            if (cat.isPre) return;
-            (cat.items || []).forEach(it => {
-                SIZES.forEach(sz => { if ((it.sizeShow?.[sz]!==false) && (it.sizes?.[sz]||0) <= 0) alerts.push(`${it.n}(${sz})`); });
-            });
-        });
-        alertBox.innerHTML = alerts.map(a => `<div style="color:red;">缺貨: ${a}</div>`).join('') || '庫存充足';
+        inv.forEach(cat => { if (cat.isPre) return; (cat.items || []).forEach(it => { SIZES.forEach(sz => { if ((it.sizeShow?.[sz]!==false) && (it.sizes?.[sz]||0) <= 0) alerts.push(`${it.n}(${sz})`); }); }); });
+        alertBox.innerHTML = alerts.map(a => `<div style="color:red;">缺: ${a}</div>`).join('') || '庫存充足';
     }
-
+    function renderCart() { document.getElementById('cart-list').innerHTML = cart.map((it, i) => `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;"><span>${it.n}</span><span onclick="cart.splice(${i},1);renderCart()" style="color:red;cursor:pointer;">✕</span></div>`).join(''); calc(); }
+    function calc() { const s = cart.reduce((a, b) => a + b.p, 0), d = Number(document.getElementById('discount').value) || 0; const f = s - d; document.getElementById('final-total').innerText = f; const c = Number(document.getElementById('cash-in').value) || 0; document.getElementById('change').innerText = c > f ? c - f : 0; }
+    function setPay(m) { payM = m; ['cash','elec','mall'].forEach(id => document.getElementById('btn-'+id).classList.remove('active')); const activeId = m==='現金'?'cash':(m==='電支'?'elec':'mall'); document.getElementById('btn-'+activeId).classList.add('active'); }
+    function renderH() { const m = document.getElementById('h-month').value; if(!m) return; const f = orders.filter(o => o.d.includes(m.replace('-','/'))); let rev = 0, prof = 0; document.getElementById('h-tbody').innerHTML = f.reverse().map(o => { rev += o.total; prof += (o.profit||0); return `<tr><td>${o.d}</td><td>${o.items}</td><td>$${o.total}</td><td>$${o.profit}</td><td>${o.pay}</td><td>${o.cust||''}${o.note||''}</td><td><button onclick="refund('${o.key}')">退</button></td></tr>`; }).join(''); document.getElementById('h-sum').innerText = `本月合計：$${rev} | 毛利：$${prof}`; }
+    function refund(k) { if(confirm("退單？")) db.ref('orders').child(k).remove(); }
+    function exportXLS() { const ws = XLSX.utils.json_to_sheet(orders); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Sales"); XLSX.writeFile(wb, "Allove_Sales.xlsx"); }
+    function openM(id) { document.getElementById(id).style.display = 'flex'; if(id==='history-modal') renderH(); }
+    function closeM(id) { document.getElementById(id).style.display = 'none'; }
     function updCat(ci, k, v) { inv[ci][k] = v; db.ref('inventory').set(inv); }
     function updSize(ci, ii, sz, v) { if(!inv[ci].items[ii].sizes) inv[ci].items[ii].sizes={}; inv[ci].items[ii].sizes[sz]=Number(v); db.ref('inventory').set(inv); }
     function updSizeShow(ci, ii, sz, v) { if(!inv[ci].items[ii].sizeShow) inv[ci].items[ii].sizeShow={}; inv[ci].items[ii].sizeShow[sz]=v; db.ref('inventory').set(inv); }
     function upd(ci, ii, k, v) { inv[ci].items[ii][k] = (k==='n'||k==='show'?v:Number(v)); db.ref('inventory').set(inv); }
-    function addP() { const ci = document.getElementById('sel-cat').value, n = document.getElementById('n-n').value; if(!n) return; inv[ci].items.push({n, c:Number(document.getElementById('n-c').value), p:Number(document.getElementById('n-p').value), show:true}); db.ref('inventory').set(inv); }
+    function addP() { const ci = document.getElementById('sel-cat').value, n = document.getElementById('n-n').value; if(!n) return; inv[ci].items.push({n, c:Number(document.getElementById('n-c').value)||0, p:Number(document.getElementById('n-p').value)||0, show:true}); db.ref('inventory').set(inv); }
     function addC() { let n = prompt("分類名"); if(n){ inv.push({cat:n, items:[], isPre: false}); db.ref('inventory').set(inv); }}
-    function renderH() { const m = document.getElementById('h-month').value; if(!m) return; const f = orders.filter(o => o.d.includes(m.replace('-','/'))); let rev = 0, prof = 0; document.getElementById('h-tbody').innerHTML = f.reverse().map(o => { rev += o.total; prof += (o.profit||0); return `<tr><td>${o.d}</td><td>${o.items}</td><td>$${o.total}</td><td>$${o.profit}</td><td>${o.pay}</td><td>${o.cust||''}${o.note||''}</td><td><button onclick="refund('${o.key}')">退</button></td></tr>`; }).join(''); document.getElementById('h-sum').innerText = `月收：$${rev} | 毛利：$${prof}`; }
-    function refund(k) { if(confirm("退單？")) db.ref('orders').child(k).remove(); }
-    function exportXLS() { const ws = XLSX.utils.json_to_sheet(orders); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Sales"); XLSX.writeFile(wb, "Sales.xlsx"); }
-    function openM(id) { document.getElementById(id).style.display = 'flex'; if(id==='history-modal') renderH(); }
-    function closeM(id) { document.getElementById(id).style.display = 'none'; }
+    function editC(ci) { let n = prompt("改名", inv[ci].cat); if(n){ inv[ci].cat=n; db.ref('inventory').set(inv); }}
     function move(ci, ii, d) { let l = inv[ci].items; if(ii+d>=0 && ii+d<l.length){ [l[ii], l[ii+d]]=[l[ii+d], l[ii]]; db.ref('inventory').set(inv); }}
-    function delC(ci) { if(confirm("刪")) { inv.splice(ci,1); db.ref('inventory').set(inv); }}
-    function delI(ci, ii) { if(confirm("刪")) { inv[ci].items.splice(ii,1); db.ref('inventory').set(inv); }}
+    function delC(ci) { if(confirm("刪除分類？")) { inv.splice(ci,1); db.ref('inventory').set(inv); }}
+    function delI(ci, ii) { if(confirm("刪除商品？")) { inv[ci].items.splice(ii,1); db.ref('inventory').set(inv); }}
 
     init();
 </script>
