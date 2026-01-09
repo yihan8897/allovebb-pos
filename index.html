@@ -235,7 +235,7 @@
 
     function checkout() {
         if (!cart.length) return;
-        const details = cart.map(i => ({n: i.n, sz: i.sz, ci: i.ci, ii: i.ii}));
+        const details = cart.map(i => ({n: i.n, p: i.p, c: i.c, sz: i.sz, ci: i.ci, ii: i.ii}));
         cart.forEach(item => { if(inv[item.ci].items[item.ii].sizes) inv[item.ci].items[item.ii].sizes[item.sz]--; });
         const t = Number(document.getElementById('final-total').innerText);
         const cost = cart.reduce((a, b) => a + (b.c || 0), 0);
@@ -255,24 +255,38 @@
     }
 
     function processRefund(k) {
-        if(!confirm("確定要進行退貨？此操作將：\n1. 回補庫存\n2. 標記紀錄為已退貨")) return;
+        if(!confirm("確定要退貨？此單將被標記退貨，庫存加回，內容將【自動填回購物車】供您修正重結。")) return;
         const order = orders.find(o => o.key === k);
         if(!order || order.isRefund) return;
-        // 回補庫存邏輯
+
+        // 1. 回補庫存
         if(order.details) {
             order.details.forEach(item => {
-                try {
-                    if(inv[item.ci] && inv[item.ci].items[item.ii]) {
-                        if(!inv[item.ci].items[item.ii].sizes) inv[item.ci].items[item.ii].sizes = {};
-                        inv[item.ci].items[item.ii].sizes[item.sz]++;
-                    }
-                } catch(e) { console.error("庫存回補失敗", e); }
+                if(inv[item.ci] && inv[item.ci].items[item.ii]) {
+                    if(!inv[item.ci].items[item.ii].sizes) inv[item.ci].items[item.ii].sizes = {};
+                    inv[item.ci].items[item.ii].sizes[item.sz]++;
+                }
             });
         }
-        // 更新訂單狀態
+
+        // 2. 自動將舊訂單內容填回當前的購物車 (智慧重刷功能)
+        cart = [];
+        if(order.details) {
+            order.details.forEach(item => {
+                cart.push({n: item.n, p: item.p, c: item.c, sz: item.sz, ci: item.ci, ii: item.ii});
+            });
+        }
+        document.getElementById('discount').value = order.dis || '';
+        document.getElementById('order-note').value = order.note || '';
+        setPay(order.pay || '現金');
+        renderCart();
+
+        // 3. 更新訂單狀態
         db.ref('orders').child(k).update({ isRefund: true, total: 0, profit: 0, dis: 0 });
         db.ref('inventory').set(inv);
-        alert("退貨成功，庫存已加回！");
+        
+        closeM('history-modal');
+        alert("退貨成功！舊單內容已自動填入左側購物車，請修正後重新結帳。");
     }
 
     function generateReport() { const today = new Date().toLocaleDateString('zh-TW'); const tOrders = orders.filter(o => o.d === today && !o.isRefund); if (!tOrders.length) return alert("今日無資料"); let cash = 0, elec = 0, mall = 0, dis = 0, prof = 0; tOrders.forEach(o => { if(o.pay==='現金') cash+=o.total; else if(o.pay==='電支') elec+=o.total; else mall+=o.total; dis+=o.dis; prof+=o.profit; }); document.getElementById('report-body').innerHTML = `今日總額：$${cash+elec+mall}<br>現金：$${cash}<br>電支：$${elec}<br>商城：$${mall}<br>毛利：$${prof}<br>折扣：$${dis}`; openM('report-modal'); }
