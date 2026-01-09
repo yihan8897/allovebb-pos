@@ -35,6 +35,9 @@
         .p-btn { background: white; border: 1px solid #f0e6dd; border-radius: 12px; padding: 15px 5px; text-align: center; cursor: pointer; box-shadow: 3px 3px 0 #e8e0d9; }
         .p-name { font-weight: bold; font-size: 0.9em; margin-bottom: 5px; }
         .p-price { color: #c2966d; font-weight: bold; }
+        
+        /* 缺貨樣式 */
+        .p-btn.out-of-stock { background: #e0e0e0; cursor: not-allowed; box-shadow: none; opacity: 0.6; }
 
         /* 結帳控制區 */
         .checkout-section { flex: 1; min-width: 320px; }
@@ -194,7 +197,12 @@
             nav.innerHTML += `<button class="nav-btn" onclick="document.getElementById('cat-${ci}').scrollIntoView({behavior:'smooth'})">${cat.cat}</button>`;
             let h = `<div id="cat-${ci}" class="cat-title">${cat.cat}</div><div class="product-grid">`;
             (cat.items || []).forEach(it => {
-                h += `<div class="p-btn" onclick="addCart('${it.n}',${it.p},${it.c||0})"><div class="p-name">${it.n}</div><div class="p-price">$${it.p}</div><div style="font-size:0.7em;color:#999">存:${it.s}</div></div>`;
+                const isOut = (it.s <= 0);
+                h += `<div class="p-btn ${isOut?'out-of-stock':''}" onclick="${isOut ? "alert('此商品庫存不足！')" : `addCart('${it.n}',${it.p},${it.c||0})`}">
+                        <div class="p-name">${it.n}</div>
+                        <div class="p-price">$${it.p}</div>
+                        <div style="font-size:0.7em;color:${isOut?'red':'#999'}">${isOut ? '缺貨中' : '存:' + it.s}</div>
+                      </div>`;
             });
             area.innerHTML += h + '</div>';
         });
@@ -220,6 +228,34 @@
 
     function checkout() {
         if (!cart.length) return;
+
+        // --- 新增：庫存檢查機制 ---
+        // 統計購物車內每種商品的需要數量
+        let cartCount = {};
+        cart.forEach(item => { cartCount[item.n] = (cartCount[item.n] || 0) + 1; });
+
+        // 比對庫存是否足夠
+        let outOfStockItems = [];
+        for (let name in cartCount) {
+            let found = false;
+            inv.forEach(cat => {
+                (cat.items || []).forEach(it => {
+                    if (it.n === name) {
+                        found = true;
+                        if (it.s < cartCount[name]) {
+                            outOfStockItems.push(`${name} (剩餘 ${it.s})`);
+                        }
+                    }
+                });
+            });
+        }
+
+        if (outOfStockItems.length > 0) {
+            alert("❌ 無法結帳！以下商品庫存不足：\n" + outOfStockItems.join("\n"));
+            return; // 終止結帳
+        }
+        // --- 檢查結束 ---
+
         const total = Number(document.getElementById('final-total').innerText);
         const cost = cart.reduce((a, b) => a + (b.c || 0), 0);
         const date = document.getElementById('is-backdate').checked && document.getElementById('backdate-val').value ? document.getElementById('backdate-val').value.replace(/-/g,'/') : new Date().toLocaleDateString('zh-TW');
@@ -227,8 +263,12 @@
             d: date, t: new Date().toLocaleTimeString('zh-TW', {hour12:false}),
             items: cart.map(i=>i.n).join(', '), total: total, profit: total - cost, pay: payM, dis: Number(document.getElementById('discount').value) || 0, note: document.getElementById('order-note').value
         };
+        
+        // 扣除庫存邏輯 (保持原樣)
         cart.forEach(c => { inv.forEach(cat => { (cat.items || []).forEach(it => { if(it.n === c.n) it.s--; }); }); });
-        db.ref('orders').push(order); db.ref('inventory').set(inv);
+        
+        db.ref('orders').push(order); 
+        db.ref('inventory').set(inv);
         alert("結帳成功！"); cart = []; renderCart(); document.getElementById('discount').value=''; document.getElementById('cash-in').value=''; document.getElementById('order-note').value='';
     }
 
@@ -244,7 +284,6 @@
     }
 
     function sendToGoogle() {
-        // 使用最後一次產生的報告數據
         alert("已開始傳送！");
     }
 
@@ -275,7 +314,6 @@
     }
     function delI(ci, ii) { if(confirm("刪除商品？")) { inv[ci].items.splice(ii,1); db.ref('inventory').set(inv); }}
 
-    // --- 今日紀錄 (明確新增刪除按鈕) ---
     function renderLog() {
         const today = new Date().toLocaleDateString('zh-TW');
         const tOrders = orders.filter(o => o.d === today).reverse().slice(0, 10);
