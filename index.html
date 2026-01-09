@@ -47,10 +47,10 @@
         .pay-btn.active { background: var(--accent-brown); color: white; border-color: var(--accent-brown); }
 
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: none; justify-content: center; align-items: center; padding: 20px; }
-        .modal-content { background: white; width: 100%; max-width: 900px; max-height: 90vh; border-radius: 20px; padding: 25px; display: flex; flex-direction: column; }
+        .modal-content { background: white; width: 100%; max-width: 950px; max-height: 90vh; border-radius: 20px; padding: 25px; display: flex; flex-direction: column; }
         .scroll-v { flex: 1; overflow: auto; border: 1px solid #eee; margin-top: 15px; }
         
-        table { width: 100%; border-collapse: collapse; min-width: 500px; }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
         th, td { border: 1px solid #eee; padding: 10px; text-align: center; }
         th { background: #f8f5f2; position: sticky; top: 0; }
         .admin-input { width: 55px; padding: 5px; text-align: center; border: 1px solid #ddd; }
@@ -58,7 +58,6 @@
         .log-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #f0f0f0; background: #fafafa; border-radius: 8px; margin-bottom: 5px; }
         .btn-del-record { background: #ffeded; color: #d9534f; border: 1px solid #d9534f; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em; font-weight: bold; }
         
-        /* 補貨提醒樣式 */
         .stock-alert-item { color: #d9534f; font-weight: bold; padding: 5px 0; border-bottom: 1px dashed #eee; display: flex; justify-content: space-between; }
     </style>
 </head>
@@ -139,7 +138,7 @@
         </div>
         <div class="scroll-v">
             <table>
-                <thead><tr><th>排序</th><th>品名</th><th>成本</th><th>售價</th><th>庫存</th><th>刪除</th></tr></thead>
+                <thead><tr><th>排序</th><th>品名</th><th>成本</th><th>售價</th><th>庫存</th><th>顯/隱</th><th>刪除</th></tr></thead>
                 <tbody id="admin-tbody"></tbody>
             </table>
         </div>
@@ -199,6 +198,9 @@
             nav.innerHTML += `<button class="nav-btn" onclick="document.getElementById('cat-${ci}').scrollIntoView({behavior:'smooth'})">${cat.cat}</button>`;
             let h = `<div id="cat-${ci}" class="cat-title">${cat.cat}</div><div class="product-grid">`;
             (cat.items || []).forEach(it => {
+                // 檢查是否隱藏：若 it.show 為 false 則不顯示
+                if (it.show === false) return;
+                
                 const isOut = (it.s <= 0);
                 h += `<div class="p-btn ${isOut?'out-of-stock':''}" onclick="${isOut ? "alert('此商品庫存不足！')" : `addCart('${it.n}',${it.p},${it.c||0})`}">
                         <div class="p-name">${it.n}</div>
@@ -211,13 +213,13 @@
         document.getElementById('sel-cat').innerHTML = inv.map((c,i)=>`<option value="${i}">${c.cat}</option>`).join('');
     }
 
-    // 新增：渲染補貨提醒
     function renderStockAlert() {
         const alertBox = document.getElementById('stock-alert-list');
         let outOfStockItems = [];
         inv.forEach(cat => {
             (cat.items || []).forEach(it => {
-                if (it.s <= 0) outOfStockItems.push(it.n);
+                // 只有在庫存不足「且」設定為顯示的情況下，才進補貨提醒
+                if (it.s <= 0 && it.show !== false) outOfStockItems.push(it.n);
             });
         });
         
@@ -294,27 +296,36 @@
     function renderAdmin() {
         const tbody = document.getElementById('admin-tbody'); tbody.innerHTML = '';
         inv.forEach((cat, ci) => {
-            tbody.innerHTML += `<tr style="background:#f4f4f4"><td colspan="5" align="left"><b>📁 ${cat.cat}</b> <button onclick="editC(${ci})">改名</button></td><td><button onclick="delC(${ci})" style="color:red">刪除</button></td></tr>`;
+            tbody.innerHTML += `<tr style="background:#f4f4f4"><td colspan="6" align="left"><b>📁 ${cat.cat}</b> <button onclick="editC(${ci})">改名</button></td><td><button onclick="delC(${ci})" style="color:red">刪除</button></td></tr>`;
             (cat.items || []).forEach((it, ii) => {
+                const isChecked = (it.show !== false) ? 'checked' : '';
                 tbody.innerHTML += `<tr>
                     <td><button onclick="move(${ci},${ii},-1)">↑</button><button onclick="move(${ci},${ii},1)">↓</button></td>
                     <td><input type="text" value="${it.n}" onchange="upd(${ci},${ii},'n',this.value)" style="width:100px"></td>
                     <td><input type="number" value="${it.c}" onchange="upd(${ci},${ii},'c',this.value)" class="admin-input"></td>
                     <td><input type="number" value="${it.p}" onchange="upd(${ci},${ii},'p',this.value)" class="admin-input"></td>
                     <td><input type="number" value="${it.s}" onchange="upd(${ci},${ii},'s',this.value)" class="admin-input"></td>
+                    <td><input type="checkbox" ${isChecked} onchange="upd(${ci},${ii},'show',this.checked)"></td>
                     <td onclick="delI(${ci},${ii})" style="color:red;cursor:pointer">✕</td>
                 </tr>`;
             });
         });
     }
-    function upd(ci, ii, k, v) { inv[ci].items[ii][k] = (k==='n'?v:Number(v)); db.ref('inventory').set(inv); }
+    function upd(ci, ii, k, v) { 
+        if(k === 'show') {
+            inv[ci].items[ii][k] = v;
+        } else {
+            inv[ci].items[ii][k] = (k==='n'?v:Number(v)); 
+        }
+        db.ref('inventory').set(inv); 
+    }
     function move(ci, ii, d) { let l = inv[ci].items; if(ii+d>=0 && ii+d<l.length){ [l[ii], l[ii+d]]=[l[ii+d], l[ii]]; db.ref('inventory').set(inv); }}
     function addC() { let n = prompt("分類名"); if(n){ inv.push({cat:n, items:[]}); db.ref('inventory').set(inv); }}
     function editC(ci) { let n = prompt("改名", inv[ci].cat); if(n){ inv[ci].cat=n; db.ref('inventory').set(inv); }}
     function delC(ci) { if(confirm("刪除分類？")) { inv.splice(ci,1); db.ref('inventory').set(inv); }}
     function addP() {
         const ci = document.getElementById('sel-cat').value, n = document.getElementById('n-n').value, c = Number(document.getElementById('n-c').value)||0, p = Number(document.getElementById('n-p').value)||0, s = Number(document.getElementById('n-s').value)||0;
-        if(!n) return; inv[ci].items.push({n,c,p,s}); db.ref('inventory').set(inv);
+        if(!n) return; inv[ci].items.push({n,c,p,s,show:true}); db.ref('inventory').set(inv);
     }
     function delI(ci, ii) { if(confirm("刪除商品？")) { inv[ci].items.splice(ii,1); db.ref('inventory').set(inv); }}
 
