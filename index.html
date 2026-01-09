@@ -167,7 +167,7 @@
 <div id="history-modal" class="modal">
     <div class="modal-content">
         <div style="display:flex; justify-content:space-between; align-items:center;"><h3>📜 歷史紀錄</h3><button onclick="closeM('history-modal')">✕</button></div>
-        <div style="margin:10px 0;">月份：<input type="month" id="h-month" onchange="renderH()"><button onclick="exportXLS()" style="margin-left:10px;">匯出 Excel</button></div>
+        <div style="margin:10px 0;">月份：<input type="month" id="h-month" onchange="renderH()"><button onclick="exportXLS()" style="margin-left:10px;">匯出 Excel (中文化)</button></div>
         <div id="h-sum" style="padding:15px; background:#fff5eb; border-radius:10px; font-weight:bold; margin-bottom:10px;">請先選擇月份</div>
         <div class="scroll-v"><table><thead><tr><th>時間</th><th>品項</th><th>總額</th><th>毛利</th><th>方式</th><th>操作</th></tr></thead><tbody id="h-tbody"></tbody></table></div>
     </div>
@@ -348,7 +348,25 @@
     }
 
     function refund(k) { if(confirm("確定刪除紀錄？")) db.ref('orders').child(k).remove(); }
-    function exportXLS() { const ws = XLSX.utils.json_to_sheet(orders); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Sales"); XLSX.writeFile(wb, "Sales_Export.xlsx"); }
+    
+    // Excel 欄位中文化修改版
+    function exportXLS() { 
+        const mappedOrders = orders.map(o => ({
+            "日期": o.d,
+            "時間": o.t,
+            "銷售品項": o.items,
+            "結帳總額": o.total,
+            "預估毛利": o.profit,
+            "支付方式": o.pay,
+            "折扣金額": o.dis,
+            "備註/客戶姓名": o.note
+        }));
+        const ws = XLSX.utils.json_to_sheet(mappedOrders); 
+        const wb = XLSX.utils.book_new(); 
+        XLSX.utils.book_append_sheet(wb, ws, "銷售報表"); 
+        XLSX.writeFile(wb, `Allove_Baby_Sales_${new Date().toLocaleDateString()}.xlsx`); 
+    }
+    
     function openM(id) { document.getElementById(id).style.display = 'flex'; if(id==='history-modal') renderH(); }
     function closeM(id) { document.getElementById(id).style.display = 'none'; }
     function move(ci, ii, d) { let l = inv[ci].items; if(ii+d>=0 && ii+d<l.length){ [l[ii], l[ii+d]]=[l[ii+d], l[ii]]; db.ref('inventory').set(inv); }}
