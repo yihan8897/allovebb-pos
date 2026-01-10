@@ -117,7 +117,7 @@
     const auth = firebase.auth();
 
     let inv = []; let orders = []; let cart = []; let payM = '現金';
-    let lastSelectedCatIndex = 0; // 用於記憶最後選取的分類
+    let lastSelectedCatIndex = 0;
 
     function init() {
         auth.signInAnonymously().then(() => {
@@ -149,8 +149,6 @@
             });
             area.innerHTML += h + '</div>';
         });
-        
-        // 渲染分類下拉選單並維持上次選取的索引
         const selCat = document.getElementById('sel-cat');
         selCat.innerHTML = inv.map((c,i)=>`<option value="${i}">${c.cat}</option>`).join('');
         selCat.value = lastSelectedCatIndex;
@@ -181,13 +179,15 @@
         inv.forEach((cat, ci) => {
             tbody.innerHTML += `<tr style="background:#e8e0d9"><td colspan="4" align="left"><b>📁 ${cat.cat}</b> <label><input type="checkbox" ${cat.isPre ? 'checked' : ''} onchange="updCat(${ci}, 'isPre', this.checked)"> 預購</label></td><td><button onclick="moveCat(${ci},-1)">↑</button><button onclick="moveCat(${ci},1)">↓</button> <button onclick="editC(${ci})">改名</button></td><td></td><td><button onclick="delC(${ci})" style="color:red">刪</button></td></tr>`;
             (cat.items || []).forEach((it, ii) => {
-                let szCtrl = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:#fff;padding:5px;">`;
+                let szCtrl = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:#fff;padding:5px;border:1px inset #eee;">`;
                 const keys = it.sizes ? Object.keys(it.sizes) : [];
                 keys.forEach(sz => {
                     const isChecked = (it.sizeShow && it.sizeShow[sz] !== false) ? 'checked' : '';
-                    szCtrl += `<div style="font-size:10px;border:1px solid #eee;padding:2px;"><input type="text" value="${sz}" onchange="renameSize(${ci},${ii},'${sz}',this.value)" style="width:40px;font-size:9px"><br><input type="number" value="${it.sizes[sz]}" onchange="updSize(${ci},${ii},'${sz}',this.value)" class="admin-input"><br><input type="checkbox" ${isChecked} onchange="updSizeShow(${ci},${ii},'${sz}',this.checked)"> <button onclick="delSize(${ci},${ii},'${sz}')" style="color:red;padding:0">✕</button></div>`;
+                    szCtrl += `<div style="font-size:10px;border:1px solid #ddd;padding:2px;background:#f9f9f9;border-radius:3px;"><input type="text" value="${sz}" onchange="renameSize(${ci},${ii},'${sz}',this.value)" style="width:40px;font-size:9px;border:1px solid #ccc;"><br><input type="number" value="${it.sizes[sz]}" onchange="updSize(${ci},${ii},'${sz}',this.value)" class="admin-input" style="margin:2px 0;"><br><input type="checkbox" ${isChecked} onchange="updSizeShow(${ci},${ii},'${sz}',this.checked)"> <button onclick="delSize(${ci},${ii},'${sz}')" style="color:red;padding:0 2px;border:none;background:none;font-weight:bold;cursor:pointer;">✕</button></div>`;
                 });
-                tbody.innerHTML += `<tr><td><button onclick="move(${ci},${ii},-1)">↑</button><button onclick="move(${ci},${ii},1)">↓</button></td><td><input type="text" value="${it.n}" onchange="upd(${ci},${ii},'n',this.value)" style="width:100px"></td><td><input type="number" value="${it.c}" onchange="upd(${ci},${ii},'c',this.value)" class="admin-input"></td><td><input type="number" value="${it.p}" onchange="upd(${ci},${ii},'p',this.value)" class="admin-input"></td><td>${szCtrl}</div></td><td><button onclick="changeProductCat(${ci}, ${ii})" style="font-size: 0.8em; margin-bottom: 5px;">移</button><br><input type="checkbox" ${it.show !== false ? 'checked' : ''} onchange="upd(${ci},${ii},'show',this.checked)"></td><td onclick="delI(${ci},${ii})" style="color:red;cursor:pointer">✕</td></tr>`;
+                szCtrl += `<button onclick="addNewSize(${ci}, ${ii})" style="grid-column: span 3; padding:2px; background:#e3f2fd; border:1px dashed #2196f3; color:#2196f3; font-size:10px; cursor:pointer; margin-top:4px;">+ 新增規格</button></div>`;
+                
+                tbody.innerHTML += `<tr><td><button onclick="move(${ci},${ii},-1)">↑</button><button onclick="move(${ci},${ii},1)">↓</button></td><td><input type="text" value="${it.n}" onchange="upd(${ci},${ii},'n',this.value)" style="width:100px"></td><td><input type="number" value="${it.c}" onchange="upd(${ci},${ii},'c',this.value)" class="admin-input"></td><td><input type="number" value="${it.p}" onchange="upd(${ci},${ii},'p',this.value)" class="admin-input"></td><td>${szCtrl}</td><td><button onclick="changeProductCat(${ci}, ${ii})" style="font-size: 0.8em; margin-bottom: 5px;">移</button><br><input type="checkbox" ${it.show !== false ? 'checked' : ''} onchange="upd(${ci},${ii},'show',this.checked)"></td><td onclick="delI(${ci},${ii})" style="color:red;cursor:pointer">✕</td></tr>`;
             });
         });
     }
@@ -199,8 +199,6 @@
         const sObj = {}, showObj = {}; sArr.forEach(s => { sObj[s] = 0; showObj[s] = true; });
         if(!inv[ci].items) inv[ci].items = [];
         inv[ci].items.push({n, c, p, show:true, sizes: sObj, sizeShow: showObj});
-        
-        // 成功後維持 lastSelectedCatIndex
         db.ref('inventory').set(inv).then(()=>{
             document.getElementById('n-n').value = '';
             document.getElementById('n-c').value = '';
@@ -210,13 +208,25 @@
         });
     }
 
-    // 增加商品移去別的分類功能
+    // 針對已有商品新增規格
+    function addNewSize(ci, ii) {
+        const newSz = prompt("請輸入新規格名稱 (例如: 紅L, 藍M)");
+        if (!newSz) return;
+        const it = inv[ci].items[ii];
+        if (!it.sizes) it.sizes = {};
+        if (!it.sizeShow) it.sizeShow = {};
+        if (it.sizes[newSz] !== undefined) return alert("規格已存在");
+        
+        it.sizes[newSz] = 0;
+        it.sizeShow[newSz] = true;
+        db.ref('inventory').set(inv);
+    }
+
     function changeProductCat(oldCi, ii) {
         const options = inv.map((c, i) => `${i}: ${c.cat}`).join('\n');
         const newCiStr = prompt(`請輸入目標分類編號：\n${options}`, oldCi);
         const newCi = parseInt(newCiStr);
         if (isNaN(newCi) || newCi < 0 || newCi >= inv.length || newCi === oldCi) return;
-
         const product = inv[oldCi].items.splice(ii, 1)[0];
         if(!inv[newCi].items) inv[newCi].items = [];
         inv[newCi].items.push(product);
@@ -231,7 +241,15 @@
         db.ref('inventory').set(inv);
     }
 
-    function delSize(ci, ii, sz) { if(confirm("刪除規格?")) { delete inv[ci].items[ii].sizes[sz]; db.ref('inventory').set(inv); } }
+    function delSize(ci, ii, sz) { 
+        if(confirm(`確定刪除規格「${sz}」嗎？`)) { 
+            const it = inv[ci].items[ii];
+            delete it.sizes[sz]; 
+            if(it.sizeShow) delete it.sizeShow[sz];
+            db.ref('inventory').set(inv); 
+        } 
+    }
+    
     function updCat(ci, k, v) { inv[ci][k] = v; db.ref('inventory').set(inv); }
     function updSize(ci, ii, sz, v) { inv[ci].items[ii].sizes[sz]=Number(v); db.ref('inventory').set(inv); }
     function updSizeShow(ci, ii, sz, v) { if(!inv[ci].items[ii].sizeShow) inv[ci].items[ii].sizeShow={}; inv[ci].items[ii].sizeShow[sz]=v; db.ref('inventory').set(inv); }
@@ -243,7 +261,7 @@
     function delC(ci) { if(confirm("刪除分類？")) { inv.splice(ci,1); db.ref('inventory').set(inv); }}
     function delI(ci, ii) { if(confirm("刪除商品？")) { inv[ci].items.splice(ii,1); db.ref('inventory').set(inv); }}
 
-    // --- 其他功能 (完全保留) ---
+    // --- 核心邏輯 (完全保留) ---
     function addCart(n, p, c, sz, ci, ii) { cart.push({n, p, c, sz, ci, ii}); renderCart(); }
     function renderCart() { document.getElementById('cart-list').innerHTML = cart.map((it, i) => `<div style="display:flex;justify-content:space-between;padding:5px 0;"><span>${it.n} (${it.sz})</span><span onclick="cart.splice(${i},1);renderCart()" style="color:red;cursor:pointer;">✕</span></div>`).join(''); calc(); }
     function calc() { const s = cart.reduce((a, b) => a + b.p, 0), d = Number(document.getElementById('discount').value) || 0; const f = s - d; document.getElementById('final-total').innerText = f; const c = Number(document.getElementById('cash-in').value) || 0; document.getElementById('change').innerText = c > f ? c - f : 0; }
