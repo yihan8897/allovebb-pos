@@ -21,8 +21,9 @@
         html, body { margin: 0; padding: 0; background: var(--bg-cream); font-family: sans-serif; color: #5d5246; overflow-y: auto !important; height: auto !important; }
         header { background: var(--main-brown); color: white; padding: 15px; text-align: center; font-weight: bold; position: sticky; top: 0; z-index: 1001; }
         
+        /* 搜尋列樣式 */
         .search-bar-container { background: #e8e0d9; padding: 10px 15px; position: sticky; top: 50px; z-index: 1000; display: flex; gap: 10px; align-items: center; border-bottom: 1px solid #d1c7bc; }
-        #global-search { flex: 1; padding: 10px 15px; border-radius: 20px; border: 1px solid #d1c7bc; font-size: 16px; outline: none; }
+        #global-search, #admin-search { flex: 1; padding: 10px 15px; border-radius: 20px; border: 1px solid #d1c7bc; font-size: 16px; outline: none; }
         
         .nav-bar { background: #efebe7; padding: 10px; display: flex; gap: 10px; overflow-x: auto; border-bottom: 2px solid #d1c7bc; }
         .nav-btn { background: white; border: 1px solid #d1c7bc; padding: 8px 18px; border-radius: 20px; white-space: nowrap; cursor: pointer; }
@@ -72,7 +73,7 @@
     <header class="no-print">Allove Baby POS 管理系統</header>
     
     <div class="search-bar-container no-print">
-        <input type="text" id="global-search" placeholder="🔍 搜尋商品名稱 (前台與後台同時過濾)..." oninput="handleSearch()">
+        <input type="text" id="global-search" placeholder="🔍 搜尋商品名稱..." oninput="syncSearch(this.value, 'admin-search')">
     </div>
     <div id="navbar" class="nav-bar no-print"></div>
 
@@ -114,7 +115,39 @@
 
 <div id="size-modal" class="modal"><div class="modal-content" style="max-width:400px;"><h3 id="size-modal-title">選擇規格</h3><div id="size-modal-grid" class="size-grid"></div><button onclick="closeM('size-modal')" style="width:100%; padding:15px; margin-top:20px; border:none; background:#eee; border-radius:10px;">取消</button></div></div>
 <div id="invoice-modal" class="modal"><div class="modal-content" style="max-width: 800px; padding:0;"><div id="invoice-print" style="padding:40px;"><div style="display:flex; justify-content:space-between; border-bottom:3px solid #000; padding-bottom:10px;"><h1>Allove Baby</h1><div style="text-align:right;"><p id="inv-date"></p><p id="inv-id" style="font-weight:bold;"></p></div></div><p style="margin-top:20px;"><strong>客戶：</strong> <span id="inv-cust"></span></p><table style="width:100%; border-collapse:collapse; margin-top:20px;" border="1"><thead><tr><th>品名</th><th>數量</th><th>單價</th></tr></thead><tbody id="inv-body"></tbody></table><h2 style="text-align:right; margin-top:30px;">總計：$<span id="inv-total"></span></h2></div><div class="no-print" style="padding:20px; display:flex; gap:10px;"><button onclick="window.print()" style="flex:1; padding:15px; background:var(--profit-green); color:white; border-radius:10px;">🖨️ 列印</button><button onclick="closeM('invoice-modal')" style="flex:1; padding:15px; background:#ccc; border-radius:10px;">關閉</button></div></div></div>
-<div id="admin-modal" class="modal"><div class="modal-content"><div style="display:flex; justify-content:space-between; align-items:center;"><h3>🛠️ 管理中心</h3><button onclick="closeM('admin-modal')">✕</button></div><div style="background:#f0fdf4; padding:12px; margin:10px 0; display:flex; gap:5px; flex-wrap:wrap; border-radius:10px;"><select id="sel-cat"></select><input type="text" id="n-n" placeholder="款式名稱" style="width:110px;"><input type="number" id="n-c" placeholder="成本" class="admin-input"><input type="number" id="n-p" placeholder="售價" class="admin-input"><input type="text" id="n-s" placeholder="規格(例:紅,藍)" style="width:150px;"><button onclick="addP()" style="background:var(--profit-green); color:white; border:none; padding:5px 10px; border-radius:5px;">新增</button><button onclick="addC()" style="background:var(--accent-brown); color:white; border:none; padding:5px 10px; border-radius:5px;">新分類</button></div><div class="scroll-v"><table><thead><tr><th>排序</th><th>品名</th><th>預設價</th><th>規格詳情 (名/本/售/庫)</th><th>移/顯</th><th>刪</th></tr></thead><tbody id="admin-tbody"></tbody></table></div></div></div>
+
+<div id="admin-modal" class="modal">
+    <div class="modal-content">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3>🛠️ 管理中心</h3>
+            <button onclick="closeM('admin-modal')">✕</button>
+        </div>
+        
+        <div style="margin-bottom: 10px; display:flex; gap:10px; align-items:center; background:#f8f5f2; padding:10px; border-radius:12px;">
+            <input type="text" id="admin-search" placeholder="🔍 在此快速搜尋商品以進行修改..." oninput="syncSearch(this.value, 'global-search')">
+        </div>
+
+        <div style="background:#f0fdf4; padding:12px; margin-bottom:10px; display:flex; gap:5px; flex-wrap:wrap; border-radius:10px;">
+            <select id="sel-cat"></select>
+            <input type="text" id="n-n" placeholder="款式名稱" style="width:110px;">
+            <input type="number" id="n-c" placeholder="成本" class="admin-input">
+            <input type="number" id="n-p" placeholder="售價" class="admin-input">
+            <input type="text" id="n-s" placeholder="規格(例:紅,藍)" style="width:150px;">
+            <button onclick="addP()" style="background:var(--profit-green); color:white; border:none; padding:5px 10px; border-radius:5px;">新增</button>
+            <button onclick="addC()" style="background:var(--accent-brown); color:white; border:none; padding:5px 10px; border-radius:5px;">新分類</button>
+        </div>
+        
+        <div class="scroll-v">
+            <table>
+                <thead>
+                    <tr><th>排序</th><th>品名</th><th>預設價</th><th>規格詳情 (名/本/售/庫)</th><th>移/顯</th><th>刪</th></tr>
+                </thead>
+                <tbody id="admin-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <div id="history-modal" class="modal"><div class="modal-content"><div style="display:flex; justify-content:space-between;"><h3>📜 歷史紀錄</h3><button onclick="closeM('history-modal')">✕</button></div><div style="margin:10px 0;">月份：<input type="month" id="h-month" onchange="renderH()"><button onclick="exportXLS()" style="margin-left:10px;">匯出 Excel</button></div><div id="h-sum" style="padding:15px; background:#fff5eb; border-radius:10px; font-weight:bold; margin-bottom:10px;"></div><div class="scroll-v"><table><thead><tr><th>時間</th><th>品項</th><th>總額</th><th>毛利</th><th>方式</th><th>操作</th></tr></thead><tbody id="h-tbody"></tbody></table></div></div></div>
 <div id="report-modal" class="modal"><div class="modal-content" style="max-width:400px; height:auto;"><h2>📝 今日報表</h2><div id="report-body" style="line-height:2; background:#fffaf5; padding:15px; border-radius:10px;"></div><button onclick="closeM('report-modal')" style="width:100%; padding:10px; margin-top:10px; border:none; background:#eee; cursor:pointer;">關閉</button></div></div>
 
@@ -144,8 +177,10 @@
         });
     }
 
-    function handleSearch() {
-        searchQuery = document.getElementById('global-search').value.toLowerCase().trim();
+    // 雙向同步搜尋邏輯
+    function syncSearch(val, targetId) {
+        searchQuery = val.toLowerCase().trim();
+        document.getElementById(targetId).value = val;
         renderUI();
         renderAdmin();
     }
@@ -213,7 +248,6 @@
                         <input type="checkbox" ${isChecked} onchange="updSizeShow(${ci},${ii},'${sz}',this.checked)"> 顯示
                     </div>`;
                 });
-                // 核心更新：新增批量與單個按鈕
                 szCtrl += `<div style="grid-column: span 2; display:flex; gap:5px;">
                     <button onclick="addNewSize(${ci}, ${ii})" style="flex:1; padding:5px; background:#e3f2fd; border:1px dashed #2196f3; color:#2196f3; font-size:11px; cursor:pointer;">+ 單個</button>
                     <button onclick="addBatchSize(${ci}, ${ii})" style="flex:1; padding:5px; background:#f0f4f8; border:1px dashed #607d8b; color:#607d8b; font-size:11px; cursor:pointer;">➕ 批量</button>
@@ -223,7 +257,6 @@
         });
     }
 
-    // 核心修復：徹底刪除規格
     function delSize(ci, ii, sz) {
         if(!confirm(`確定要刪除規格「${sz}」嗎？`)) return;
         const it = inv[ci].items[ii];
@@ -235,24 +268,17 @@
         db.ref('inventory').set(inv);
     }
 
-    // 批量新增功能
     function addBatchSize(ci, ii) {
         const input = prompt("請輸入多個規格名稱，用「逗號」或「空白」隔開：\n(例: S M L XL 或 紅,藍,綠)");
         if (!input) return;
         const names = input.split(/[,，\s]+/).map(s => s.trim()).filter(s => s !== "");
         if (names.length === 0) return;
-
         const it = inv[ci].items[ii];
         if(!it.sizes) it.sizes = {}; if(!it.sizeShow) it.sizeShow = {}; if(!it.szCosts) it.szCosts = {}; if(!it.szPrices) it.szPrices = {};
-
         names.forEach(name => {
-            if (it.sizes[name] !== undefined) return; // 跳過重複的
-            it.sizes[name] = 0;
-            it.sizeShow[name] = true;
-            it.szCosts[name] = it.c; // 繼承預設成本
-            it.szPrices[name] = it.p; // 繼承預設售價
+            if (it.sizes[name] !== undefined) return;
+            it.sizes[name] = 0; it.sizeShow[name] = true; it.szCosts[name] = it.c; it.szPrices[name] = it.p;
         });
-
         db.ref('inventory').set(inv);
     }
 
