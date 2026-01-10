@@ -131,16 +131,14 @@
     
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    const auth = firebase.auth(); // 新增 Auth 實例
+    const auth = firebase.auth();
 
     let inv = []; let orders = []; let cart = []; let payM = '現金';
     const SIZES = ['80', '90', '100', '110', '120', '130', '140'];
 
-    // 修改 init，加入匿名登入邏輯
     function init() {
         auth.signInAnonymously()
             .then(() => {
-                // 登入成功後才顯示內容並開始監聽資料
                 document.getElementById('auth-guard').style.display = 'none';
                 document.getElementById('main-content').style.display = 'block';
                 startDatabaseListeners();
@@ -151,18 +149,21 @@
             });
     }
 
-    // 將資料庫監聽獨立出來
     function startDatabaseListeners() {
-        db.ref('inventory').on('value', snap => { inv = snap.val() || []; renderUI(); renderAdmin(); renderStockAlert(); });
+        db.ref('inventory').on('value', snap => { 
+            inv = snap.val() || []; 
+            renderUI(); 
+            renderAdmin(); 
+            renderStockAlert(); 
+        });
         db.ref('orders').on('value', snap => {
             const data = snap.val();
             orders = data ? Object.keys(data).map(k => ({...data[k], key: k})) : [];
-            renderLog(); renderWeeklyHot();
+            renderLog(); 
+            renderWeeklyHot();
             if(document.getElementById('history-modal').style.display === 'flex') renderH();
         });
     }
-
-    // --- 以下為功能邏輯 100% 保留且無刪減 ---
 
     function renderUI() {
         const area = document.getElementById('item-area'), nav = document.getElementById('navbar');
@@ -253,8 +254,40 @@
     function updSize(ci, ii, sz, v) { if(!inv[ci].items[ii].sizes) inv[ci].items[ii].sizes={}; inv[ci].items[ii].sizes[sz]=Number(v); db.ref('inventory').set(inv); }
     function updSizeShow(ci, ii, sz, v) { if(!inv[ci].items[ii].sizeShow) inv[ci].items[ii].sizeShow={}; inv[ci].items[ii].sizeShow[sz]=v; db.ref('inventory').set(inv); }
     function upd(ci, ii, k, v) { inv[ci].items[ii][k] = (k==='n'||k==='show'?v:Number(v)); db.ref('inventory').set(inv); }
-    function addP() { const ci = document.getElementById('sel-cat').value, n = document.getElementById('n-n').value, c = Number(document.getElementById('n-c').value)||0, p = Number(document.getElementById('n-p').value)||0; if(!n) return; const sObj = {}; const showObj = {}; SIZES.forEach(s => { sObj[s] = 0; showObj[s] = true; }); inv[ci].items.push({n, c, p, show:true, sizes: sObj, sizeShow: showObj}); db.ref('inventory').set(inv); }
-    function addC() { let n = prompt("分類名"); if(n){ inv.push({cat:n, items:[], isPre: false}); db.ref('inventory').set(inv); }}
+    
+    // 修復與增強新增商品功能
+    function addP() { 
+        const ci = document.getElementById('sel-cat').value; 
+        const n = document.getElementById('n-n').value; 
+        const c = Number(document.getElementById('n-c').value)||0; 
+        const p = Number(document.getElementById('n-p').value)||0; 
+        if(!n) { alert("請輸入款式名稱"); return; } 
+        if(!inv[ci].items) inv[ci].items = [];
+        
+        const sObj = {}; const showObj = {}; 
+        SIZES.forEach(s => { sObj[s] = 0; showObj[s] = true; }); 
+        
+        inv[ci].items.push({
+            n: n, 
+            c: c, 
+            p: p, 
+            show: true, 
+            sizes: sObj, 
+            sizeShow: showObj
+        }); 
+        
+        db.ref('inventory').set(inv).then(() => {
+            document.getElementById('n-n').value = '';
+            document.getElementById('n-c').value = '';
+            document.getElementById('n-p').value = '';
+            alert("商品新增成功！");
+        }).catch(e => {
+            alert("新增失敗，請檢查 Firebase Rules 權限設定！");
+            console.error(e);
+        });
+    }
+
+    function addC() { let n = prompt("分類名"); if(n){ if(!inv) inv = []; inv.push({cat:n, items:[], isPre: false}); db.ref('inventory').set(inv); }}
     function editC(ci) { let n = prompt("改名", inv[ci].cat); if(n){ inv[ci].cat=n; db.ref('inventory').set(inv); }}
 
     function addCart(n, p, c, sz, ci, ii) { cart.push({n: n, p: p, c: c, sz: sz, ci: ci, ii: ii}); renderCart(); }
@@ -334,7 +367,6 @@
     function delC(ci) { if(confirm("刪除分類？")) { inv.splice(ci,1); db.ref('inventory').set(inv); }}
     function delI(ci, ii) { if(confirm("刪除商品？")) { inv[ci].items.splice(ii,1); db.ref('inventory').set(inv); }}
 
-    // 啟動程式
     init();
 </script>
 </body>
