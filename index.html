@@ -27,18 +27,14 @@
         .container { display: flex; flex-wrap: wrap; padding: 15px; gap: 15px; max-width: 1400px; margin: 0 auto; }
         .item-section { flex: 2; min-width: 320px; }
         
-        /* 分類標題樣式 */
-        .cat-title { background: #fdf5f0; padding: 12px 15px; border-radius: 20px; margin: 15px 0 5px; font-weight: bold; border-left: 8px solid var(--main-brown); display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; }
-        .cat-title:hover { background: #f8e8de; }
-        .cat-title .arrow { transition: transform 0.3s; }
-        .cat-title.collapsed .arrow { transform: rotate(-90deg); }
-        .cat-count { font-size: 0.8em; color: var(--accent-brown); background: white; padding: 2px 8px; border-radius: 10px; }
-
+        .cat-title { background: #fdf5f0; padding: 12px 15px; border-radius: 20px; margin: 25px 0 10px; font-weight: bold; border-left: 8px solid var(--main-brown); display: flex; justify-content: space-between; align-items: center; }
         .preorder-tag { font-size: 0.7em; background: var(--preorder-blue); color: white; padding: 2px 8px; border-radius: 10px; margin-left: 10px; }
-        
-        /* 產品網格收合動畫 */
-        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; overflow: hidden; transition: max-height 0.3s ease-out; }
-        .product-grid.collapsed { max-height: 0; margin: 0; padding: 0; pointer-events: none; }
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+
+        /* 管理中心專用：折疊行樣式 */
+        .admin-cat-row { background: #e8e0d9; cursor: pointer; user-select: none; }
+        .admin-cat-row:hover { background: #decab8; }
+        .collapsed-row { display: none !important; }
 
         .p-btn { background: white; border: 1px solid #f0e6dd; border-radius: 12px; padding: 15px 5px; text-align: center; cursor: pointer; box-shadow: 3px 3px 0 #e8e0d9; }
         .p-name { font-weight: bold; font-size: 0.9em; margin-bottom: 5px; }
@@ -57,9 +53,9 @@
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: none; justify-content: center; align-items: center; padding: 20px; }
         .modal-content { background: white; width: 100%; max-width: 1000px; max-height: 90vh; border-radius: 20px; padding: 25px; display: flex; flex-direction: column; overflow: hidden; }
         .scroll-v { flex: 1; overflow: auto; border: 1px solid #eee; margin-top: 15px; }
-        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        table { width: 100%; border-collapse: collapse; min-width: 850px; }
         th, td { border: 1px solid #eee; padding: 10px; text-align: center; }
-        th { background: #f8f5f2; position: sticky; top: 0; }
+        th { background: #f8f5f2; position: sticky; top: 0; z-index: 10; }
         .admin-input { width: 60px; padding: 3px; border: 1px solid #ddd; font-size: 12px; }
         .sz-box { border: 1px solid #ddd; padding: 5px; background: #f9f9f9; border-radius: 5px; margin-bottom: 5px; position: relative; text-align: left; }
         .del-sz-btn { position: absolute; top: 2px; right: 2px; color: red; border: none; background: none; cursor: pointer; font-weight: bold; font-size: 14px; }
@@ -76,7 +72,7 @@
 <div id="main-content" style="display:none;">
     <header class="no-print">Allove Baby POS 管理系統</header>
     <div class="search-bar-container no-print">
-        <input type="text" id="global-search" placeholder="🔍 搜尋商品名稱 (將自動展開分類)..." oninput="syncSearch(this.value, 'admin-search')">
+        <input type="text" id="global-search" placeholder="🔍 搜尋商品名稱..." oninput="syncSearch(this.value, 'admin-search')">
     </div>
     <div id="navbar" class="nav-bar no-print"></div>
     <div class="container no-print">
@@ -119,7 +115,7 @@
     <div class="modal-content">
         <div style="display:flex; justify-content:space-between; align-items:center;"><h3>🛠️ 管理中心</h3><button onclick="closeM('admin-modal')">✕</button></div>
         <div style="margin-bottom: 10px; display:flex; gap:10px; align-items:center; background:#f8f5f2; padding:10px; border-radius:12px;">
-            <input type="text" id="admin-search" placeholder="🔍 在此快速搜尋商品以進行修改..." oninput="syncSearch(this.value, 'global-search')">
+            <input type="text" id="admin-search" placeholder="🔍 搜尋商品 (自動展開分類)..." oninput="syncSearch(this.value, 'global-search')">
         </div>
         <div style="background:#f0fdf4; padding:12px; margin-bottom:10px; display:flex; gap:5px; flex-wrap:wrap; border-radius:10px;">
             <select id="sel-cat"></select>
@@ -131,7 +127,7 @@
             <button onclick="addP()" style="background:var(--profit-green); color:white; border:none; padding:5px 10px; border-radius:5px;">新增</button>
             <button onclick="addC()" style="background:var(--accent-brown); color:white; border:none; padding:5px 10px; border-radius:5px;">新分類</button>
         </div>
-        <div class="scroll-v"><table><thead><tr><th>排序</th><th>品名</th><th>優惠備註</th><th>規格詳情</th><th>移/顯</th><th>刪</th></tr></thead><tbody id="admin-tbody"></tbody></table></div>
+        <div class="scroll-v"><table><thead><tr><th>排序</th><th>品名</th><th>規格詳情</th><th>移/顯</th><th>優惠備註</th><th>刪</th></tr></thead><tbody id="admin-tbody"></tbody></table></div>
     </div>
 </div>
 
@@ -147,7 +143,7 @@
     const auth = firebase.auth();
 
     let inv = []; let orders = []; let cart = []; let payM = '現金'; let lastCatIdx = 0; let searchQuery = "";
-    let collapsedState = {}; // 紀錄分類的開合狀態
+    let adminCollapsed = {}; 
 
     function init() { auth.signInAnonymously().then(() => { document.getElementById('auth-guard').style.display = 'none'; document.getElementById('main-content').style.display = 'block'; startDatabaseListeners(); }); }
 
@@ -171,11 +167,6 @@
         return found;
     }
 
-    function toggleCat(ci) {
-        collapsedState[ci] = !collapsedState[ci];
-        renderUI();
-    }
-
     function syncSearch(val, targetId) { 
         searchQuery = val.toLowerCase().trim(); 
         document.getElementById(targetId).value = val; 
@@ -187,24 +178,10 @@
         const area = document.getElementById('item-area'), nav = document.getElementById('navbar');
         area.innerHTML = ''; nav.innerHTML = '';
         inv.forEach((cat, ci) => {
-            if (!searchQuery) {
-                nav.innerHTML += `<button class="nav-btn" onclick="collapsedState[${ci}]=false; renderUI(); setTimeout(()=>document.getElementById('cat-${ci}').scrollIntoView({behavior:'smooth'}), 100);">${cat.cat}</button>`;
-            }
-            
+            if (!searchQuery) nav.innerHTML += `<button class="nav-btn" onclick="document.getElementById('cat-${ci}').scrollIntoView({behavior:'smooth'})">${cat.cat}</button>`;
             let filteredItems = (cat.items || []).filter(it => it.n.toLowerCase().includes(searchQuery));
             if (filteredItems.length === 0 && searchQuery) return;
-            
-            // 搜尋時強制展開，不搜尋時依照紀錄的狀態 (預設收合)
-            if (collapsedState[ci] === undefined) collapsedState[ci] = true;
-            let isCollapsed = searchQuery ? false : collapsedState[ci];
-            
-            let h = `
-                <div id="cat-${ci}" class="cat-title ${isCollapsed ? 'collapsed' : ''}" onclick="toggleCat(${ci})">
-                    <span>${cat.cat} ${cat.isPre ? '<span class="preorder-tag">預購區</span>' : ''} <span class="cat-count">${(cat.items||[]).length} 件</span></span>
-                    <span class="arrow">▼</span>
-                </div>
-                <div class="product-grid ${isCollapsed ? 'collapsed' : ''}">`;
-            
+            let h = `<div id="cat-${ci}" class="cat-title">${cat.cat} ${cat.isPre ? '<span class="preorder-tag">預購區</span>' : ''}</div><div class="product-grid">`;
             (cat.items || []).forEach((it, ii) => {
                 if (it.show === false) return;
                 if (searchQuery && !it.n.toLowerCase().includes(searchQuery)) return;
@@ -244,7 +221,12 @@
         inv.forEach((cat, ci) => {
             let filteredItems = (cat.items || []).filter(it => it.n.toLowerCase().includes(searchQuery));
             if (filteredItems.length === 0 && searchQuery) return;
-            tbody.innerHTML += `<tr style="background:#e8e0d9"><td colspan="3" align="left"><b>📁 ${cat.cat}</b> <label><input type="checkbox" ${cat.isPre ? 'checked' : ''} onchange="updCat(${ci}, 'isPre', this.checked)"> 預購</label></td><td><button onclick="moveCat(${ci},-1)">↑</button><button onclick="moveCat(${ci},1)">↓</button> <button onclick="editC(${ci})">改名</button></td><td></td><td><button onclick="delC(${ci})" style="color:red">刪</button></td></tr>`;
+            
+            if (adminCollapsed[ci] === undefined) adminCollapsed[ci] = false;
+            let isCollapsed = searchQuery ? false : adminCollapsed[ci];
+
+            tbody.innerHTML += `<tr class="admin-cat-row" onclick="toggleAdminCat(${ci})"><td colspan="3" align="left"><b>${isCollapsed?'▶':'▼'} 📁 ${cat.cat}</b> <label onclick="event.stopPropagation()"><input type="checkbox" ${cat.isPre ? 'checked' : ''} onchange="updCat(${ci}, 'isPre', this.checked)"> 預購</label></td><td><button onclick="event.stopPropagation();moveCat(${ci},-1)">↑</button><button onclick="event.stopPropagation();moveCat(${ci},1)">↓</button> <button onclick="event.stopPropagation();editC(${ci})">改名</button></td><td></td><td><button onclick="event.stopPropagation();delC(${ci})" style="color:red">刪</button></td></tr>`;
+            
             (cat.items || []).forEach((it, ii) => {
                 if (searchQuery && !it.n.toLowerCase().includes(searchQuery)) return;
                 let szCtrl = `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px;">`;
@@ -259,11 +241,13 @@
                     </div>`;
                 });
                 szCtrl += `<div style="grid-column: span 2; display:flex; gap:5px;"><button onclick="addNewSize(${ci},${ii})">+單個</button><button onclick="addBatchSize(${ci},${ii})">➕批量</button></div></div>`;
-                tbody.innerHTML += `<tr><td><button onclick="move(${ci},${ii},-1)">↑</button><button onclick="move(${ci},${ii},1)">↓</button></td><td><input type="text" value="${it.n}" onchange="upd(${ci},${ii},'n',this.value)" style="width:90px"></td><td><input type="text" value="${it.promo||''}" placeholder="優惠" onchange="upd(${ci},${ii},'promo',this.value)" style="width:100px; color:var(--promo-orange); font-weight:bold;"></td><td>${szCtrl}</td><td><button onclick="changeProductCat(${ci},${ii})">移</button><br><input type="checkbox" ${it.show!==false?'checked':''} onchange="upd(${ci},${ii},'show',this.checked)"></td><td onclick="delI(${ci},${ii})" style="color:red;cursor:pointer">✕</td></tr>`;
+                // 調整後的欄位順序：排序、品名、規格詳情、移/顯、優惠備註、刪除
+                tbody.innerHTML += `<tr class="${isCollapsed?'collapsed-row':''}"><td><button onclick="move(${ci},${ii},-1)">↑</button><button onclick="move(${ci},${ii},1)">↓</button></td><td><input type="text" value="${it.n}" onchange="upd(${ci},${ii},'n',this.value)" style="width:90px"></td><td>${szCtrl}</td><td><button onclick="changeProductCat(${ci},${ii})">移</button><br><input type="checkbox" ${it.show!==false?'checked':''} onchange="upd(${ci},${ii},'show',this.checked)"></td><td><input type="text" value="${it.promo||''}" placeholder="備註" onchange="upd(${ci},${ii},'promo',this.value)" style="width:90px; color:var(--promo-orange); font-weight:bold;"></td><td onclick="delI(${ci},${ii})" style="color:red;cursor:pointer">✕</td></tr>`;
             });
         });
     }
 
+    function toggleAdminCat(ci) { adminCollapsed[ci] = !adminCollapsed[ci]; renderAdmin(); }
     function delSize(ci, ii, sz) { if(!confirm(`刪除「${sz}」？`)) return; const it=inv[ci].items[ii]; delete it.sizes[sz]; if(it.sizeShow) delete it.sizeShow[sz]; if(it.szCosts) delete it.szCosts[sz]; if(it.szPrices) delete it.szPrices[sz]; db.ref('inventory').set(inv); }
     function addBatchSize(ci, ii) {
         const input = prompt("規格名稱(逗號隔開):"); if (!input) return;
@@ -279,7 +263,6 @@
     function updSizeShow(ci, ii, sz, v) { if(!inv[ci].items[ii].sizeShow) inv[ci].items[ii].sizeShow={}; inv[ci].items[ii].sizeShow[sz]=v; db.ref('inventory').set(inv); }
     function updCat(ci, k, v) { inv[ci][k] = v; db.ref('inventory').set(inv); }
     function upd(ci, ii, k, v) { if(k==='n'){ const d=checkDuplicateName(v,{ci,ii}); if(d){ alert(`⚠️ 「${v}」已存在於「${d}」！`); renderAdmin(); return; }} inv[ci].items[ii][k]=(k==='n'||k==='show'||k==='promo'?v:Number(v)); db.ref('inventory').set(inv); }
-
     function addP() {
         const ci=document.getElementById('sel-cat').value, n=document.getElementById('n-n').value;
         if(!n) return;
@@ -291,7 +274,6 @@
         db.ref('inventory').set(inv);
         document.getElementById('n-n').value=''; document.getElementById('n-m').value='';
     }
-
     function changeProductCat(oldCi, ii) {
         const opts = inv.map((c, i) => `${i}: ${c.cat}`).join('\n');
         const newCi = parseInt(prompt(`輸入目標分類編號：\n${opts}`, oldCi));
