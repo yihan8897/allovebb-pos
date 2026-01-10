@@ -26,9 +26,20 @@
         .nav-btn { background: white; border: 1px solid #d1c7bc; padding: 8px 18px; border-radius: 20px; white-space: nowrap; cursor: pointer; }
         .container { display: flex; flex-wrap: wrap; padding: 15px; gap: 15px; max-width: 1400px; margin: 0 auto; }
         .item-section { flex: 2; min-width: 320px; }
-        .cat-title { background: #fdf5f0; padding: 10px 15px; border-radius: 20px; margin: 25px 0 10px; font-weight: bold; border-left: 8px solid var(--main-brown); display: flex; justify-content: space-between; align-items: center; }
+        
+        /* 分類標題樣式 */
+        .cat-title { background: #fdf5f0; padding: 12px 15px; border-radius: 20px; margin: 15px 0 5px; font-weight: bold; border-left: 8px solid var(--main-brown); display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; }
+        .cat-title:hover { background: #f8e8de; }
+        .cat-title .arrow { transition: transform 0.3s; }
+        .cat-title.collapsed .arrow { transform: rotate(-90deg); }
+        .cat-count { font-size: 0.8em; color: var(--accent-brown); background: white; padding: 2px 8px; border-radius: 10px; }
+
         .preorder-tag { font-size: 0.7em; background: var(--preorder-blue); color: white; padding: 2px 8px; border-radius: 10px; margin-left: 10px; }
-        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+        
+        /* 產品網格收合動畫 */
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; overflow: hidden; transition: max-height 0.3s ease-out; }
+        .product-grid.collapsed { max-height: 0; margin: 0; padding: 0; pointer-events: none; }
+
         .p-btn { background: white; border: 1px solid #f0e6dd; border-radius: 12px; padding: 15px 5px; text-align: center; cursor: pointer; box-shadow: 3px 3px 0 #e8e0d9; }
         .p-name { font-weight: bold; font-size: 0.9em; margin-bottom: 5px; }
         .p-price { color: #c2966d; font-weight: bold; }
@@ -65,7 +76,7 @@
 <div id="main-content" style="display:none;">
     <header class="no-print">Allove Baby POS 管理系統</header>
     <div class="search-bar-container no-print">
-        <input type="text" id="global-search" placeholder="🔍 搜尋商品名稱..." oninput="syncSearch(this.value, 'admin-search')">
+        <input type="text" id="global-search" placeholder="🔍 搜尋商品名稱 (將自動展開分類)..." oninput="syncSearch(this.value, 'admin-search')">
     </div>
     <div id="navbar" class="nav-bar no-print"></div>
     <div class="container no-print">
@@ -136,6 +147,7 @@
     const auth = firebase.auth();
 
     let inv = []; let orders = []; let cart = []; let payM = '現金'; let lastCatIdx = 0; let searchQuery = "";
+    let collapsedState = {}; // 紀錄分類的開合狀態
 
     function init() { auth.signInAnonymously().then(() => { document.getElementById('auth-guard').style.display = 'none'; document.getElementById('main-content').style.display = 'block'; startDatabaseListeners(); }); }
 
@@ -159,16 +171,40 @@
         return found;
     }
 
-    function syncSearch(val, targetId) { searchQuery = val.toLowerCase().trim(); document.getElementById(targetId).value = val; renderUI(); renderAdmin(); }
+    function toggleCat(ci) {
+        collapsedState[ci] = !collapsedState[ci];
+        renderUI();
+    }
+
+    function syncSearch(val, targetId) { 
+        searchQuery = val.toLowerCase().trim(); 
+        document.getElementById(targetId).value = val; 
+        renderUI(); 
+        renderAdmin(); 
+    }
 
     function renderUI() {
         const area = document.getElementById('item-area'), nav = document.getElementById('navbar');
         area.innerHTML = ''; nav.innerHTML = '';
         inv.forEach((cat, ci) => {
-            if (!searchQuery) nav.innerHTML += `<button class="nav-btn" onclick="document.getElementById('cat-${ci}').scrollIntoView({behavior:'smooth'})">${cat.cat}</button>`;
+            if (!searchQuery) {
+                nav.innerHTML += `<button class="nav-btn" onclick="collapsedState[${ci}]=false; renderUI(); setTimeout(()=>document.getElementById('cat-${ci}').scrollIntoView({behavior:'smooth'}), 100);">${cat.cat}</button>`;
+            }
+            
             let filteredItems = (cat.items || []).filter(it => it.n.toLowerCase().includes(searchQuery));
             if (filteredItems.length === 0 && searchQuery) return;
-            let h = `<div id="cat-${ci}" class="cat-title">${cat.cat} ${cat.isPre ? '<span class="preorder-tag">預購區</span>' : ''}</div><div class="product-grid">`;
+            
+            // 搜尋時強制展開，不搜尋時依照紀錄的狀態 (預設收合)
+            if (collapsedState[ci] === undefined) collapsedState[ci] = true;
+            let isCollapsed = searchQuery ? false : collapsedState[ci];
+            
+            let h = `
+                <div id="cat-${ci}" class="cat-title ${isCollapsed ? 'collapsed' : ''}" onclick="toggleCat(${ci})">
+                    <span>${cat.cat} ${cat.isPre ? '<span class="preorder-tag">預購區</span>' : ''} <span class="cat-count">${(cat.items||[]).length} 件</span></span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="product-grid ${isCollapsed ? 'collapsed' : ''}">`;
+            
             (cat.items || []).forEach((it, ii) => {
                 if (it.show === false) return;
                 if (searchQuery && !it.n.toLowerCase().includes(searchQuery)) return;
@@ -184,19 +220,15 @@
     function openSizePicker(ci, ii) {
         const it = inv[ci].items[ii];
         document.getElementById('size-modal-title').innerText = it.n;
-        
-        // 顯示優惠提醒
         const promoTag = document.getElementById('promo-notice');
         if(it.promo) { promoTag.innerText = `🎁 優惠提醒：${it.promo}`; promoTag.style.display = 'inline-block'; }
         else { promoTag.style.display = 'none'; }
-
         const grid = document.getElementById('size-modal-grid'); grid.innerHTML = '';
-        const keys = it.sizes ? Object.keys(it.sizes) : [];
-        keys.forEach(sz => {
+        (Object.keys(it.sizes||{})).forEach(sz => {
             if (it.sizeShow && it.sizeShow[sz] === false) return;
             const stock = it.sizes[sz] || 0;
-            const szPrice = (it.szPrices && it.szPrices[sz] !== undefined) ? it.szPrices[sz] : it.p;
-            const szCost = (it.szCosts && it.szCosts[sz] !== undefined) ? it.szCosts[sz] : it.c;
+            const szPrice = (it.szPrices?.[sz] !== undefined) ? it.szPrices[sz] : it.p;
+            const szCost = (it.szCosts?.[sz] !== undefined) ? it.szCosts[sz] : it.c;
             const btn = document.createElement('button');
             btn.className = 'size-option';
             if (!inv[ci].isPre && stock <= 0) btn.disabled = true;
@@ -217,50 +249,41 @@
                 if (searchQuery && !it.n.toLowerCase().includes(searchQuery)) return;
                 let szCtrl = `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px;">`;
                 (Object.keys(it.sizes||{})).forEach(sz => {
-                    const isChecked = (it.sizeShow && it.sizeShow[sz] !== false) ? 'checked' : '';
                     szCtrl += `<div class="sz-box">
                         <button class="del-sz-btn" onclick="delSize(${ci},${ii},'${sz}')">✕</button>
                         <input type="text" value="${sz}" onchange="renameSize(${ci},${ii},'${sz}',this.value)" style="width:40px;font-size:10px"><br>
                         本:<input type="number" value="${it.szCosts?.[sz]??it.c}" onchange="updSzVal(${ci},${ii},'${sz}','szCosts',this.value)" class="admin-input"><br>
                         售:<input type="number" value="${it.szPrices?.[sz]??it.p}" onchange="updSzVal(${ci},${ii},'${sz}','szPrices',this.value)" class="admin-input"><br>
                         庫:<input type="number" value="${it.sizes[sz]}" onchange="updSize(${ci},${ii},'${sz}',this.value)" class="admin-input"><br>
-                        <input type="checkbox" ${isChecked} onchange="updSizeShow(${ci},${ii},'${sz}',this.checked)"> 顯示
+                        <input type="checkbox" ${(it.sizeShow && it.sizeShow[sz]!==false)?'checked':''} onchange="updSizeShow(${ci},${ii},'${sz}',this.checked)"> 顯示
                     </div>`;
                 });
                 szCtrl += `<div style="grid-column: span 2; display:flex; gap:5px;"><button onclick="addNewSize(${ci},${ii})">+單個</button><button onclick="addBatchSize(${ci},${ii})">➕批量</button></div></div>`;
-                tbody.innerHTML += `<tr><td><button onclick="move(${ci},${ii},-1)">↑</button><button onclick="move(${ci},${ii},1)">↓</button></td><td><input type="text" value="${it.n}" onchange="upd(${ci},${ii},'n',this.value)" style="width:90px"></td><td><input type="text" value="${it.promo||''}" placeholder="例如:2件9折" onchange="upd(${ci},${ii},'promo',this.value)" style="width:100px; color:var(--promo-orange); font-weight:bold;"></td><td>${szCtrl}</td><td><button onclick="changeProductCat(${ci},${ii})">移</button><br><input type="checkbox" ${it.show!==false?'checked':''} onchange="upd(${ci},${ii},'show',this.checked)"></td><td onclick="delI(${ci},${ii})" style="color:red;cursor:pointer">✕</td></tr>`;
+                tbody.innerHTML += `<tr><td><button onclick="move(${ci},${ii},-1)">↑</button><button onclick="move(${ci},${ii},1)">↓</button></td><td><input type="text" value="${it.n}" onchange="upd(${ci},${ii},'n',this.value)" style="width:90px"></td><td><input type="text" value="${it.promo||''}" placeholder="優惠" onchange="upd(${ci},${ii},'promo',this.value)" style="width:100px; color:var(--promo-orange); font-weight:bold;"></td><td>${szCtrl}</td><td><button onclick="changeProductCat(${ci},${ii})">移</button><br><input type="checkbox" ${it.show!==false?'checked':''} onchange="upd(${ci},${ii},'show',this.checked)"></td><td onclick="delI(${ci},${ii})" style="color:red;cursor:pointer">✕</td></tr>`;
             });
         });
     }
 
-    function delSize(ci, ii, sz) { if(!confirm(`刪除規格「${sz}」？`)) return; const it = inv[ci].items[ii]; delete it.sizes[sz]; if(it.sizeShow) delete it.sizeShow[sz]; if(it.szCosts) delete it.szCosts[sz]; if(it.szPrices) delete it.szPrices[sz]; db.ref('inventory').set(inv); }
+    function delSize(ci, ii, sz) { if(!confirm(`刪除「${sz}」？`)) return; const it=inv[ci].items[ii]; delete it.sizes[sz]; if(it.sizeShow) delete it.sizeShow[sz]; if(it.szCosts) delete it.szCosts[sz]; if(it.szPrices) delete it.szPrices[sz]; db.ref('inventory').set(inv); }
     function addBatchSize(ci, ii) {
-        const input = prompt("輸入多個規格名稱(逗號或空白隔開):"); if (!input) return;
+        const input = prompt("規格名稱(逗號隔開):"); if (!input) return;
         const names = input.split(/[,，\s]+/).map(s => s.trim()).filter(s => s !== "");
         const it = inv[ci].items[ii]; if(!it.sizes) it.sizes={}; if(!it.sizeShow) it.sizeShow={}; if(!it.szCosts) it.szCosts={}; if(!it.szPrices) it.szPrices={};
         names.forEach(name => { if (it.sizes[name]===undefined) { it.sizes[name]=0; it.sizeShow[name]=true; it.szCosts[name]=it.c; it.szPrices[name]=it.p; } });
         db.ref('inventory').set(inv);
     }
-    function renameSize(ci, ii, oldK, newK) { if(!newK || oldK === newK) return; const it = inv[ci].items[ii]; ['sizes', 'sizeShow', 'szCosts', 'szPrices'].forEach(f => { if(it[f] && it[f][oldK]!==undefined){ it[f][newK]=it[f][oldK]; delete it[f][oldK]; } }); db.ref('inventory').set(inv); }
-    function addNewSize(ci, ii) { const name = prompt("規格名稱"); if(!name) return; const it = inv[ci].items[ii]; if(!it.sizes) it.sizes={}; if(!it.sizeShow) it.sizeShow={}; if(!it.szCosts) it.szCosts={}; if(!it.szPrices) it.szPrices={}; it.sizes[name]=0; it.sizeShow[name]=true; it.szCosts[name]=it.c; it.szPrices[name]=it.p; db.ref('inventory').set(inv); }
+    function renameSize(ci, ii, oldK, newK) { if(!newK || oldK===newK) return; const it=inv[ci].items[ii]; ['sizes', 'sizeShow', 'szCosts', 'szPrices'].forEach(f => { if(it[f] && it[f][oldK]!==undefined){ it[f][newK]=it[f][oldK]; delete it[f][oldK]; } }); db.ref('inventory').set(inv); }
+    function addNewSize(ci, ii) { const name=prompt("規格名"); if(!name) return; const it=inv[ci].items[ii]; if(!it.sizes) it.sizes={}; if(!it.sizeShow) it.sizeShow={}; if(!it.szCosts) it.szCosts={}; if(!it.szPrices) it.szPrices={}; it.sizes[name]=0; it.sizeShow[name]=true; it.szCosts[name]=it.c; it.szPrices[name]=it.p; db.ref('inventory').set(inv); }
     function updSzVal(ci, ii, sz, f, v) { if(!inv[ci].items[ii][f]) inv[ci].items[ii][f]={}; inv[ci].items[ii][f][sz]=Number(v); db.ref('inventory').set(inv); }
     function updSize(ci, ii, sz, v) { inv[ci].items[ii].sizes[sz]=Number(v); db.ref('inventory').set(inv); }
     function updSizeShow(ci, ii, sz, v) { if(!inv[ci].items[ii].sizeShow) inv[ci].items[ii].sizeShow={}; inv[ci].items[ii].sizeShow[sz]=v; db.ref('inventory').set(inv); }
     function updCat(ci, k, v) { inv[ci][k] = v; db.ref('inventory').set(inv); }
-    
-    function upd(ci, ii, k, v) { 
-        if(k === 'n') {
-            const dupInCat = checkDuplicateName(v, {ci, ii});
-            if(dupInCat) { alert(`⚠️ 名稱「${v}」已存在於「${dupInCat}」分類中！`); renderAdmin(); return; }
-        }
-        inv[ci].items[ii][k] = (k==='n'||k==='show'||k==='promo'?v:Number(v)); db.ref('inventory').set(inv); 
-    }
+    function upd(ci, ii, k, v) { if(k==='n'){ const d=checkDuplicateName(v,{ci,ii}); if(d){ alert(`⚠️ 「${v}」已存在於「${d}」！`); renderAdmin(); return; }} inv[ci].items[ii][k]=(k==='n'||k==='show'||k==='promo'?v:Number(v)); db.ref('inventory').set(inv); }
 
     function addP() {
         const ci=document.getElementById('sel-cat').value, n=document.getElementById('n-n').value;
         if(!n) return;
-        const dupInCat = checkDuplicateName(n);
-        if(dupInCat) { alert(`⚠️ 無法新增！名稱「${n}」已存在於「${dupInCat}」分類中。`); return; }
+        const d=checkDuplicateName(n); if(d){ alert(`⚠️ 「${n}」已存在於「${d}」！`); return; }
         const c=Number(document.getElementById('n-c').value)||0, p=Number(document.getElementById('n-p').value)||0, s=document.getElementById('n-s').value, m=document.getElementById('n-m').value;
         const sArr = s?s.split(','):['F']; const sO={}, shO={}, scO={}, spO={};
         sArr.forEach(x=>{ x=x.trim(); sO[x]=0; shO[x]=true; scO[x]=c; spO[x]=p; });
@@ -270,11 +293,11 @@
     }
 
     function changeProductCat(oldCi, ii) {
-        const options = inv.map((c, i) => `${i}: ${c.cat}`).join('\n');
-        const newCi = parseInt(prompt(`輸入目標分類編號：\n${options}`, oldCi));
+        const opts = inv.map((c, i) => `${i}: ${c.cat}`).join('\n');
+        const newCi = parseInt(prompt(`輸入目標分類編號：\n${opts}`, oldCi));
         if (isNaN(newCi) || newCi < 0 || newCi >= inv.length || newCi === oldCi) return;
-        const product = inv[oldCi].items.splice(ii, 1)[0];
-        if(!inv[newCi].items) inv[newCi].items = []; inv[newCi].items.push(product);
+        const prod = inv[oldCi].items.splice(ii, 1)[0];
+        if(!inv[newCi].items) inv[newCi].items = []; inv[newCi].items.push(prod);
         db.ref('inventory').set(inv);
     }
     function addC() { let n=prompt("分類名"); if(n){ inv.push({cat:n, items:[], isPre:false}); db.ref('inventory').set(inv); }}
