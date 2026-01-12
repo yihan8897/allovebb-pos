@@ -59,8 +59,8 @@
         .sz-box { border: 1px solid #ddd; padding: 5px; background: #f9f9f9; border-radius: 5px; margin-bottom: 5px; position: relative; text-align: left; }
         .del-sz-btn { position: absolute; top: 2px; right: 2px; color: red; border: none; background: none; cursor: pointer; font-weight: bold; font-size: 14px; }
         .sz-move-btns { position: absolute; bottom: 2px; right: 2px; display: flex; gap: 2px; }
-        .sz-move-btns button { padding: 0 4px; font-size: 12px; cursor: pointer; background: #fff; border: 1px solid #888; border-radius: 3px; font-weight: bold; }
-        .sz-move-btns button:hover { background: #eee; }
+        .sz-move-btns button { padding: 4px 6px; font-size: 14px; cursor: pointer; background: #fff; border: 1px solid #888; border-radius: 3px; font-weight: bold; }
+        .sz-move-btns button:active { background: #ddd; }
         .hot-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px dashed #eee; font-size: 0.9em; }
         .log-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #f0f0f0; }
         .is-refunded { text-decoration: line-through; color: #bbb !important; }
@@ -150,31 +150,37 @@
     function init() { auth.signInAnonymously().then(() => { document.getElementById('auth-guard').style.display = 'none'; document.getElementById('main-content').style.display = 'block'; startDatabaseListeners(); }); }
 
     function startDatabaseListeners() {
-        db.ref('inventory').on('value', snap => { inv = snap.val() || []; renderUI(); renderAdmin(); renderStockAlert(); });
+        db.ref('inventory').on('value', snap => { 
+            let data = snap.val() || [];
+            // 自動修復 & 升級舊數據結構
+            inv = data.map(cat => ({
+                ...cat,
+                items: (cat.items || []).map(it => {
+                    if (it.sizes && !Array.isArray(it.sizes)) {
+                        const newSizes = [];
+                        Object.keys(it.sizes).forEach(k => {
+                            newSizes.push({
+                                n: k,
+                                s: it.sizes[k],
+                                show: (it.sizeShow?.[k] !== false),
+                                c: it.szCosts?.[k] ?? it.c,
+                                p: it.szPrices?.[k] ?? it.p
+                            });
+                        });
+                        it.sizes = newSizes; delete it.sizeShow; delete it.szCosts; delete it.szPrices;
+                    }
+                    return it;
+                })
+            }));
+            renderUI(); renderAdmin(); renderStockAlert(); 
+        });
         db.ref('orders').on('value', snap => {
             const data = snap.val(); orders = data ? Object.keys(data).map(k => ({...data[k], key: k})) : [];
             renderLog(); renderWeeklyHot(); if(document.getElementById('history-modal').style.display === 'flex') renderH();
         });
     }
 
-    function checkDuplicateName(name, currentPath = null) {
-        let found = null;
-        inv.forEach((cat, ci) => {
-            (cat.items || []).forEach((it, ii) => {
-                if (it.n.trim() === name.trim()) {
-                    if (!currentPath || currentPath.ci !== ci || currentPath.ii !== ii) found = cat.cat;
-                }
-            });
-        });
-        return found;
-    }
-
-    function syncSearch(val, targetId) { 
-        searchQuery = val.toLowerCase().trim(); 
-        document.getElementById(targetId).value = val; 
-        renderUI(); 
-        renderAdmin(); 
-    }
+    function syncSearch(val, targetId) { searchQuery = val.toLowerCase().trim(); document.getElementById(targetId).value = val; renderUI(); renderAdmin(); }
 
     function renderUI() {
         const area = document.getElementById('item-area'), nav = document.getElementById('navbar');
@@ -203,16 +209,14 @@
         if(it.promo) { promoTag.innerText = `🎁 優惠提醒：${it.promo}`; promoTag.style.display = 'inline-block'; }
         else { promoTag.style.display = 'none'; }
         const grid = document.getElementById('size-modal-grid'); grid.innerHTML = '';
-        Object.keys(it.sizes||{}).forEach(sz => {
-            if (it.sizeShow && it.sizeShow[sz] === false) return;
-            const stock = it.sizes[sz] || 0;
-            const szPrice = (it.szPrices?.[sz] !== undefined) ? it.szPrices[sz] : it.p;
-            const szCost = (it.szCosts?.[sz] !== undefined) ? it.szCosts[sz] : it.c;
+        (it.sizes || []).forEach((szObj, si) => {
+            if (szObj.show === false) return;
+            const stock = szObj.s || 0;
             const btn = document.createElement('button');
             btn.className = 'size-option';
             if (!inv[ci].isPre && stock <= 0) btn.disabled = true;
-            btn.innerHTML = `<strong>${sz}</strong><b>$${szPrice}</b><span>${inv[ci].isPre ? '預購' : (stock > 0 ? '存:'+stock : '缺貨')}</span>`;
-            btn.onclick = () => { addCart(it.n, szPrice, szCost, sz, ci, ii); closeM('size-modal'); };
+            btn.innerHTML = `<strong>${szObj.n}</strong><b>$${szObj.p}</b><span>${inv[ci].isPre ? '預購' : (stock > 0 ? '存:'+stock : '缺貨')}</span>`;
+            btn.onclick = () => { addCart(it.n, szObj.p, szObj.c, szObj.n, ci, ii, si); closeM('size-modal'); };
             grid.appendChild(btn);
         });
         openM('size-modal');
@@ -227,19 +231,18 @@
             tbody.innerHTML += `<tr class="admin-cat-row" onclick="toggleAdminCat(${ci})"><td colspan="3" align="left"><b>${isCollapsed?'▶':'▼'} 📁 ${cat.cat}</b> <label onclick="event.stopPropagation()"><input type="checkbox" ${cat.isPre ? 'checked' : ''} onchange="updCat(${ci}, 'isPre', this.checked)"> 預購</label></td><td><button onclick="event.stopPropagation();moveCat(${ci},-1)">↑</button><button onclick="event.stopPropagation();moveCat(${ci},1)">↓</button> <button onclick="event.stopPropagation();editC(${ci})">改名</button></td><td></td><td><button onclick="event.stopPropagation();delC(${ci})" style="color:red">刪</button></td></tr>`;
             (cat.items || []).forEach((it, ii) => {
                 if (searchQuery && !it.n.toLowerCase().includes(searchQuery)) return;
-                let szKeys = Object.keys(it.sizes||{});
                 let szCtrl = `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px;">`;
-                szKeys.forEach((sz, sIdx) => {
+                (it.sizes || []).forEach((sz, si) => {
                     szCtrl += `<div class="sz-box">
-                        <button class="del-sz-btn" onclick="delSize(${ci},${ii},'${sz}')">✕</button>
-                        <input type="text" value="${sz}" onchange="renameSize(${ci},${ii},'${sz}',this.value)" style="width:40px;font-size:10px"><br>
-                        本:<input type="number" value="${it.szCosts?.[sz]??it.c}" onchange="updSzVal(${ci},${ii},'${sz}','szCosts',this.value)" class="admin-input"><br>
-                        售:<input type="number" value="${it.szPrices?.[sz]??it.p}" onchange="updSzVal(${ci},${ii},'${sz}','szPrices',this.value)" class="admin-input"><br>
-                        庫:<input type="number" value="${it.sizes[sz]}" onchange="updSize(${ci},${ii},'${sz}',this.value)" class="admin-input"><br>
-                        <input type="checkbox" ${(it.sizeShow && it.sizeShow[sz]!==false)?'checked':''} onchange="updSizeShow(${ci},${ii},'${sz}',this.checked)"> 顯示
+                        <button class="del-sz-btn" onclick="delSize(${ci},${ii},${si})">✕</button>
+                        <input type="text" value="${sz.n}" onchange="updSz(${ci},${ii},${si},'n',this.value)" style="width:40px;font-size:10px"><br>
+                        本:<input type="number" value="${sz.c}" onchange="updSz(${ci},${ii},${si},'c',this.value)" class="admin-input"><br>
+                        售:<input type="number" value="${sz.p}" onchange="updSz(${ci},${ii},${si},'p',this.value)" class="admin-input"><br>
+                        庫:<input type="number" value="${sz.s}" onchange="updSz(${ci},${ii},${si},'s',this.value)" class="admin-input"><br>
+                        <input type="checkbox" ${sz.show!==false?'checked':''} onchange="updSz(${ci},${ii},${si},'show',this.checked)"> 顯
                         <div class="sz-move-btns">
-                            <button onclick="moveSize(${ci},${ii},${sIdx},-1)">←</button>
-                            <button onclick="moveSize(${ci},${ii},${sIdx},1)">→</button>
+                            <button onclick="moveSz(${ci},${ii},${si},-1)">←</button>
+                            <button onclick="moveSz(${ci},${ii},${si},1)">→</button>
                         </div>
                     </div>`;
                 });
@@ -249,63 +252,47 @@
         });
     }
 
-    function moveSize(ci, ii, sIdx, dir) {
-        const it = inv[ci].items[ii];
-        const entries = Object.entries(it.sizes);
-        const targetIdx = sIdx + dir;
-        if (targetIdx < 0 || targetIdx >= entries.length) return;
+    function moveSz(ci, ii, si, d) {
+        let list = inv[ci].items[ii].sizes;
+        if (si + d >= 0 && si + d < list.length) {
+            [list[si], list[si+d]] = [list[si+d], list[si]];
+            db.ref('inventory').set(inv);
+        }
+    }
 
-        // 核心排序修正：透過 Entries 陣列交換順序
-        const item = entries.splice(sIdx, 1)[0];
-        entries.splice(targetIdx, 0, item);
+    function updSz(ci, ii, si, k, v) { 
+        inv[ci].items[ii].sizes[si][k] = (k==='n'||k==='show' ? v : Number(v)); 
+        db.ref('inventory').set(inv); 
+    }
 
-        const newSizes = {}, newShow = {}, newCosts = {}, newPrices = {};
-        entries.forEach(([key, val]) => {
-            newSizes[key] = val;
-            newShow[key] = (it.sizeShow && it.sizeShow[key] !== undefined) ? it.sizeShow[key] : true;
-            newCosts[key] = (it.szCosts && it.szCosts[key] !== undefined) ? it.szCosts[key] : it.c;
-            newPrices[key] = (it.szPrices && it.szPrices[key] !== undefined) ? it.szPrices[key] : it.p;
-        });
+    function delSize(ci, ii, si) { if(confirm("刪除規格？")) { inv[ci].items[ii].sizes.splice(si, 1); db.ref('inventory').set(inv); }}
 
-        it.sizes = newSizes; it.sizeShow = newShow; it.szCosts = newCosts; it.szPrices = newPrices;
+    function addNewSize(ci, ii) { 
+        let name = prompt("規格名"); if(!name) return;
+        let it = inv[ci].items[ii];
+        if(!it.sizes) it.sizes = [];
+        it.sizes.push({ n: name, s: 1, p: it.p, c: it.c, show: true });
+        db.ref('inventory').set(inv);
+    }
+
+    function addBatchSize(ci, ii) {
+        let input = prompt("規格(逗號隔開)"); if(!input) return;
+        let names = input.split(/[,，\s]+/).map(s=>s.trim()).filter(s=>s!=="");
+        let it = inv[ci].items[ii];
+        names.forEach(n => it.sizes.push({ n, s: 1, p: it.p, c: it.c, show: true }));
         db.ref('inventory').set(inv);
     }
 
     function toggleAdminCat(ci) { adminCollapsed[ci] = !adminCollapsed[ci]; renderAdmin(); }
-    function delSize(ci, ii, sz) { if(!confirm(`刪除「${sz}」？`)) return; const it=inv[ci].items[ii]; delete it.sizes[sz]; if(it.sizeShow) delete it.sizeShow[sz]; if(it.szCosts) delete it.szCosts[sz]; if(it.szPrices) delete it.szPrices[sz]; db.ref('inventory').set(inv); }
-    function addBatchSize(ci, ii) {
-        const input = prompt("規格名稱(逗號隔開):"); if (!input) return;
-        const names = input.split(/[,，\s]+/).map(s => s.trim()).filter(s => s !== "");
-        const it = inv[ci].items[ii]; if(!it.sizes) it.sizes={}; if(!it.sizeShow) it.sizeShow={}; if(!it.szCosts) it.szCosts={}; if(!it.szPrices) it.szPrices={};
-        names.forEach(name => { if (it.sizes[name]===undefined) { it.sizes[name]=1; it.sizeShow[name]=true; it.szCosts[name]=it.c; it.szPrices[name]=it.p; } });
-        db.ref('inventory').set(inv);
-    }
-    function renameSize(ci, ii, oldK, newK) { if(!newK || oldK===newK) return; const it=inv[ci].items[ii]; 
-        const newSizes = {}, newShow = {}, newCosts = {}, newPrices = {};
-        Object.keys(it.sizes).forEach(k => {
-            let key = (k === oldK) ? newK : k;
-            newSizes[key] = it.sizes[k];
-            newShow[key] = it.sizeShow ? it.sizeShow[k] : true;
-            newCosts[key] = it.szCosts ? it.szCosts[k] : it.c;
-            newPrices[key] = it.szPrices ? it.szPrices[k] : it.p;
-        });
-        it.sizes = newSizes; it.sizeShow = newShow; it.szCosts = newCosts; it.szPrices = newPrices;
-        db.ref('inventory').set(inv); 
-    }
-    function addNewSize(ci, ii) { const name=prompt("規格名"); if(!name) return; const it=inv[ci].items[ii]; if(!it.sizes) it.sizes={}; if(!it.sizeShow) it.sizeShow={}; if(!it.szCosts) it.szCosts={}; if(!it.szPrices) it.szPrices={}; it.sizes[name]=1; it.sizeShow[name]=true; it.szCosts[name]=it.c; it.szPrices[name]=it.p; db.ref('inventory').set(inv); }
-    function updSzVal(ci, ii, sz, f, v) { if(!inv[ci].items[ii][f]) inv[ci].items[ii][f]={}; inv[ci].items[ii][f][sz]=Number(v); db.ref('inventory').set(inv); }
-    function updSize(ci, ii, sz, v) { inv[ci].items[ii].sizes[sz]=Number(v); db.ref('inventory').set(inv); }
-    function updSizeShow(ci, ii, sz, v) { if(!inv[ci].items[ii].sizeShow) inv[ci].items[ii].sizeShow={}; inv[ci].items[ii].sizeShow[sz]=v; db.ref('inventory').set(inv); }
     function updCat(ci, k, v) { inv[ci][k] = v; db.ref('inventory').set(inv); }
-    function upd(ci, ii, k, v) { if(k==='n'){ const d=checkDuplicateName(v,{ci,ii}); if(d){ alert(`⚠️ 「${v}」已存在於「${d}」！`); renderAdmin(); return; }} inv[ci].items[ii][k]=(k==='n'||k==='show'||k==='promo'?v:Number(v)); db.ref('inventory').set(inv); }
+    function upd(ci, ii, k, v) { inv[ci].items[ii][k] = (k==='n'||k==='show'||k==='promo'?v:Number(v)); db.ref('inventory').set(inv); }
     function addP() {
-        const ci=document.getElementById('sel-cat').value, n=document.getElementById('n-n').value;
-        if(!n) return;
-        const d=checkDuplicateName(n); if(d){ alert(`⚠️ 「${n}」已存在於「${d}」！`); return; }
+        const ci=document.getElementById('sel-cat').value, n=document.getElementById('n-n').value; if(!n) return;
         const c=Number(document.getElementById('n-c').value)||0, p=Number(document.getElementById('n-p').value)||0, s=document.getElementById('n-s').value, m=document.getElementById('n-m').value;
-        const sArr = s?s.split(','):['F']; const sO={}, shO={}, scO={}, spO={};
-        sArr.forEach(x=>{ x=x.trim(); sO[x]=1; shO[x]=true; scO[x]=c; spO[x]=p; });
-        if(!inv[ci].items) inv[ci].items=[]; inv[ci].items.push({n,c,p,promo:m,show:true,sizes:sO,sizeShow:shO,szCosts:scO,szPrices:spO});
+        const sArr = s?s.split(','):['F']; 
+        const sizes = sArr.map(x => ({ n: x.trim(), s: 1, p: p, c: c, show: true }));
+        if(!inv[ci].items) inv[ci].items=[]; 
+        inv[ci].items.push({n,c,p,promo:m,show:true,sizes});
         db.ref('inventory').set(inv);
         document.getElementById('n-n').value=''; document.getElementById('n-m').value='';
     }
@@ -323,16 +310,18 @@
     function move(ci, ii, d) { let l=inv[ci].items; if(ii+d>=0 && ii+d<l.length){ [l[ii],l[ii+d]]=[l[ii+d],l[ii]]; db.ref('inventory').set(inv); }}
     function delC(ci) { if(confirm("刪除分類？")) { inv.splice(ci,1); db.ref('inventory').set(inv); }}
     function delI(ci, ii) { if(confirm("刪除商品？")) { inv[ci].items.splice(ii,1); db.ref('inventory').set(inv); }}
-    function addCart(n, p, c, sz, ci, ii) { cart.push({n, p, c, sz, ci, ii}); renderCart(); }
+
+    function addCart(n, p, c, sz, ci, ii, si) { cart.push({n, p, c, sz, ci, ii, si}); renderCart(); }
     function renderCart() { document.getElementById('cart-list').innerHTML = cart.map((it, i) => `<div style="display:flex;justify-content:space-between;padding:5px 0;"><span>${it.n}(${it.sz})</span><span onclick="cart.splice(${i},1);renderCart()" style="color:red;cursor:pointer;">✕</span></div>`).join(''); calc(); }
     function calc() { const s = cart.reduce((a, b) => a + b.p, 0), d = Number(document.getElementById('discount').value) || 0; const f = s - d; document.getElementById('final-total').innerText = f; const c = Number(document.getElementById('cash-in').value) || 0; document.getElementById('change').innerText = c > f ? c - f : 0; }
     function setPay(m, btn) { payM = m; document.querySelectorAll('.pay-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
+
     function checkout() {
         if (!cart.length) return;
         const t = Number(document.getElementById('final-total').innerText), tc = cart.reduce((a, b) => a + (b.c || 0), 0);
         const d = document.getElementById('is-backdate').checked && document.getElementById('backdate-val').value ? document.getElementById('backdate-val').value.replace(/-/g,'/') : new Date().toLocaleDateString('zh-TW');
         const order = {d, t: new Date().toLocaleTimeString('zh-TW',{hour12:false}), items: cart.map(i=>`${i.n}(${i.sz})`).join(', '), details: cart, total: t, profit: t - tc, pay: payM, note: document.getElementById('order-note').value, isRefund: false};
-        cart.forEach(item => { if(inv[item.ci].items[item.ii].sizes) inv[item.ci].items[item.ii].sizes[item.sz]--; });
+        cart.forEach(item => { if(inv[item.ci].items[item.ii].sizes[item.si]) inv[item.ci].items[item.ii].sizes[item.si].s--; });
         db.ref('orders').push(order); db.ref('inventory').set(inv);
         if(payM === '網路商城') {
             document.getElementById('inv-date').innerText = '日期：' + order.d; document.getElementById('inv-id').innerText = '單號：' + Date.now().toString().slice(-6);
@@ -341,17 +330,19 @@
         } else alert("結帳成功！");
         cart = []; renderCart(); document.getElementById('order-note').value = ''; document.getElementById('discount').value = ''; document.getElementById('cash-in').value = '';
     }
+
     function processRefund(k) {
         if(!confirm("確定退貨？")) return;
         const o = orders.find(x => x.key === k); if(!o || o.isRefund) return;
-        (o.details || []).forEach(i => { if(inv[i.ci] && inv[i.ci].items[i.ii]) inv[i.ci].items[i.ii].sizes[i.sz]++; });
+        (o.details || []).forEach(i => { if(inv[i.ci] && inv[i.ci].items[i.ii] && inv[i.ci].items[i.ii].sizes[i.si]) inv[i.ci].items[i.ii].sizes[i.si].s++; });
         cart = (o.details || []).map(i => ({...i})); renderCart();
         db.ref('orders').child(k).update({ isRefund: true, total: 0, profit: 0 }); db.ref('inventory').set(inv);
         closeM('history-modal'); alert("已標記退貨並回填購物車。");
     }
+
     function renderLog() { const today = new Date().toLocaleDateString('zh-TW'); const t = orders.filter(o => o.d === today).reverse().slice(0, 5); document.getElementById('today-log').innerHTML = t.map(o => `<div class="log-item"><span class="${o.isRefund?'is-refunded':''}">[${o.t}] $${o.total}</span>${!o.isRefund?`<button onclick="processRefund('${o.key}')">退</button>`:''}</div>`).join(''); }
     function renderStockAlert() {
-        let a = []; inv.forEach(c => { if(c.isPre) return; (c.items||[]).forEach(it => { Object.keys(it.sizes||{}).forEach(sz => { if(it.sizes[sz]<=0 && (it.sizeShow && it.sizeShow[sz]!==false)) a.push(`${it.n}(${sz})`); })}); });
+        let a = []; inv.forEach(c => { if(c.isPre) return; (c.items||[]).forEach(it => { (it.sizes||[]).forEach(sz => { if(sz.s<=0 && sz.show!==false) a.push(`${it.n}(${sz.n})`); })}); });
         document.getElementById('stock-alert-list').innerHTML = a.map(x => `<div style="color:red;">● ${x} 缺貨</div>`).join('') || '庫存正常';
     }
     function renderWeeklyHot() {
@@ -364,10 +355,7 @@
         const m = document.getElementById('h-month').value; if(!m) return;
         const [y, mm] = m.split('-'); const f = orders.filter(o => { const d = o.d.split('/'); return d[0]===y && parseInt(d[1])===parseInt(mm); });
         let rev = 0, prof = 0;
-        document.getElementById('h-tbody').innerHTML = f.slice().reverse().map(o => {
-            if(!o.isRefund) { rev+=o.total; prof+=o.profit; }
-            return `<tr class="${o.isRefund?'is-refunded':''}"><td>${o.d} ${o.t}</td><td>${o.items}</td><td>$${o.total}</td><td>$${o.profit}</td><td>${o.pay}</td><td><button onclick="processRefund('${o.key}')">退</button></td></tr>`;
-        }).join('');
+        document.getElementById('h-tbody').innerHTML = f.slice().reverse().map(o => { if(!o.isRefund) { rev+=o.total; prof+=o.profit; } return `<tr class="${o.isRefund?'is-refunded':''}"><td>${o.d} ${o.t}</td><td>${o.items}</td><td>$${o.total}</td><td>$${o.profit}</td><td>${o.pay}</td><td><button onclick="processRefund('${o.key}')">退</button></td></tr>`; }).join('');
         document.getElementById('h-sum').innerText = `${y}/${mm} 實收：$${rev} | 毛利：$${prof}`;
     }
     function generateReport() { const today = new Date().toLocaleDateString('zh-TW'); const f = orders.filter(o => o.d === today && !o.isRefund); let c=0,e=0,m=0,p=0; f.forEach(o=>{ if(o.pay==='現金') c+=o.total; else if(o.pay==='電支') e+=o.total; else m+=o.total; p+=o.profit; }); document.getElementById('report-body').innerHTML = `今日實收：$${c+e+m}<br>現金：$${c}<br>電支：$${e}<br>商城：$${m}<br>今日毛利：$${p}`; openM('report-modal'); }
