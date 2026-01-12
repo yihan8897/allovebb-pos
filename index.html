@@ -59,7 +59,8 @@
         .sz-box { border: 1px solid #ddd; padding: 5px; background: #f9f9f9; border-radius: 5px; margin-bottom: 5px; position: relative; text-align: left; }
         .del-sz-btn { position: absolute; top: 2px; right: 2px; color: red; border: none; background: none; cursor: pointer; font-weight: bold; font-size: 14px; }
         .sz-move-btns { position: absolute; bottom: 2px; right: 2px; display: flex; gap: 2px; }
-        .sz-move-btns button { padding: 0 4px; font-size: 10px; cursor: pointer; background: white; border: 1px solid #ccc; }
+        .sz-move-btns button { padding: 0 4px; font-size: 12px; cursor: pointer; background: #fff; border: 1px solid #888; border-radius: 3px; font-weight: bold; }
+        .sz-move-btns button:hover { background: #eee; }
         .hot-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px dashed #eee; font-size: 0.9em; }
         .log-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #f0f0f0; }
         .is-refunded { text-decoration: line-through; color: #bbb !important; }
@@ -202,8 +203,7 @@
         if(it.promo) { promoTag.innerText = `🎁 優惠提醒：${it.promo}`; promoTag.style.display = 'inline-block'; }
         else { promoTag.style.display = 'none'; }
         const grid = document.getElementById('size-modal-grid'); grid.innerHTML = '';
-        // 依照 sizes 鍵值的順序顯示
-        (Object.keys(it.sizes||{})).forEach(sz => {
+        Object.keys(it.sizes||{}).forEach(sz => {
             if (it.sizeShow && it.sizeShow[sz] === false) return;
             const stock = it.sizes[sz] || 0;
             const szPrice = (it.szPrices?.[sz] !== undefined) ? it.szPrices[sz] : it.p;
@@ -223,12 +223,8 @@
         inv.forEach((cat, ci) => {
             let filteredItems = (cat.items || []).filter(it => it.n.toLowerCase().includes(searchQuery));
             if (filteredItems.length === 0 && searchQuery) return;
-            
-            if (adminCollapsed[ci] === undefined) adminCollapsed[ci] = false;
-            let isCollapsed = searchQuery ? false : adminCollapsed[ci];
-
+            let isCollapsed = searchQuery ? false : (adminCollapsed[ci] || false);
             tbody.innerHTML += `<tr class="admin-cat-row" onclick="toggleAdminCat(${ci})"><td colspan="3" align="left"><b>${isCollapsed?'▶':'▼'} 📁 ${cat.cat}</b> <label onclick="event.stopPropagation()"><input type="checkbox" ${cat.isPre ? 'checked' : ''} onchange="updCat(${ci}, 'isPre', this.checked)"> 預購</label></td><td><button onclick="event.stopPropagation();moveCat(${ci},-1)">↑</button><button onclick="event.stopPropagation();moveCat(${ci},1)">↓</button> <button onclick="event.stopPropagation();editC(${ci})">改名</button></td><td></td><td><button onclick="event.stopPropagation();delC(${ci})" style="color:red">刪</button></td></tr>`;
-            
             (cat.items || []).forEach((it, ii) => {
                 if (searchQuery && !it.n.toLowerCase().includes(searchQuery)) return;
                 let szKeys = Object.keys(it.sizes||{});
@@ -255,21 +251,22 @@
 
     function moveSize(ci, ii, sIdx, dir) {
         const it = inv[ci].items[ii];
-        const keys = Object.keys(it.sizes);
-        if (sIdx + dir < 0 || sIdx + dir >= keys.length) return;
-        
-        // 交換順序邏輯：將物件重新構造以維持 key 的順序
-        const targetKeys = [...keys];
-        [targetKeys[sIdx], targetKeys[sIdx + dir]] = [targetKeys[sIdx + dir], targetKeys[sIdx]];
-        
+        const entries = Object.entries(it.sizes);
+        const targetIdx = sIdx + dir;
+        if (targetIdx < 0 || targetIdx >= entries.length) return;
+
+        // 核心排序修正：透過 Entries 陣列交換順序
+        const item = entries.splice(sIdx, 1)[0];
+        entries.splice(targetIdx, 0, item);
+
         const newSizes = {}, newShow = {}, newCosts = {}, newPrices = {};
-        targetKeys.forEach(k => {
-            newSizes[k] = it.sizes[k];
-            newShow[k] = it.sizeShow[k];
-            newCosts[k] = it.szCosts[k];
-            newPrices[k] = it.szPrices[k];
+        entries.forEach(([key, val]) => {
+            newSizes[key] = val;
+            newShow[key] = (it.sizeShow && it.sizeShow[key] !== undefined) ? it.sizeShow[key] : true;
+            newCosts[key] = (it.szCosts && it.szCosts[key] !== undefined) ? it.szCosts[key] : it.c;
+            newPrices[key] = (it.szPrices && it.szPrices[key] !== undefined) ? it.szPrices[key] : it.p;
         });
-        
+
         it.sizes = newSizes; it.sizeShow = newShow; it.szCosts = newCosts; it.szPrices = newPrices;
         db.ref('inventory').set(inv);
     }
