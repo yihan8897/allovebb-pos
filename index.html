@@ -5,12 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>🧸 Allove Baby POS</title>
     
-    <link rel="icon" href="https://lh3.googleusercontent.com/d/1HyGwEiGZuK0iOJ0dTVPeu5WcU2gdNa4g">
-    <link rel="apple-touch-icon" href="https://lh3.googleusercontent.com/d/1HyGwEiGZuK0iOJ0dTVPeu5WcU2gdNa4g">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Allove POS">
-
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -18,7 +12,7 @@
     
     <style>
         :root { --main-brown: #b0a496; --bg-cream: #fcf8f5; --accent-brown: #8c7b6c; --price-red: #d9534f; --profit-green: #6b8e23; --preorder-blue: #5bc0de; --promo-orange: #f39c12; }
-        html, body { margin: 0; padding: 0; background: var(--bg-cream); font-family: sans-serif; color: #5d5246; overflow-y: auto !important; height: auto !important; }
+        html, body { margin: 0; padding: 0; background: var(--bg-cream); font-family: sans-serif; color: #5d5246; overflow-y: auto; height: auto; }
         header { background: var(--main-brown); color: white; padding: 15px; text-align: center; font-weight: bold; position: sticky; top: 0; z-index: 1001; }
         .search-bar-container { background: #e8e0d9; padding: 10px 15px; position: sticky; top: 50px; z-index: 1000; display: flex; gap: 10px; align-items: center; border-bottom: 1px solid #d1c7bc; }
         #global-search, #admin-search { flex: 1; padding: 10px 15px; border-radius: 20px; border: 1px solid #d1c7bc; font-size: 16px; outline: none; }
@@ -26,18 +20,11 @@
         .nav-btn { background: white; border: 1px solid #d1c7bc; padding: 8px 18px; border-radius: 20px; white-space: nowrap; cursor: pointer; }
         .container { display: flex; flex-wrap: wrap; padding: 15px; gap: 15px; max-width: 1400px; margin: 0 auto; }
         .item-section { flex: 2; min-width: 320px; }
-        
         .cat-title { background: #fdf5f0; padding: 12px 15px; border-radius: 20px; margin: 25px 0 10px; font-weight: bold; border-left: 8px solid var(--main-brown); display: flex; justify-content: space-between; align-items: center; }
         .preorder-tag { font-size: 0.7em; background: var(--preorder-blue); color: white; padding: 2px 8px; border-radius: 10px; margin-left: 10px; }
         .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
-
-        .admin-cat-row { background: #e8e0d9; cursor: pointer; user-select: none; }
-        .admin-cat-row:hover { background: #decab8; }
-        .collapsed-row { display: none !important; }
-
-        .p-btn { background: white; border: 1px solid #f0e6dd; border-radius: 12px; padding: 15px 5px; text-align: center; cursor: pointer; box-shadow: 3px 3px 0 #e8e0d9; }
-        .p-name { font-weight: bold; font-size: 0.9em; margin-bottom: 5px; }
-        .p-price { color: #c2966d; font-weight: bold; }
+        .p-btn { background: white; border: 1px solid #f0e6dd; border-radius: 12px; padding: 15px 5px; text-align: center; cursor: pointer; box-shadow: 3px 3px 0 #e8e0d9; transition: 0.2s; }
+        .p-btn:active { transform: translateY(2px); box-shadow: none; }
         .checkout-section { flex: 1; min-width: 320px; }
         .card { background: white; border-radius: 15px; padding: 20px; border: 2px solid #e8e0d9; margin-bottom: 15px; }
         .big-input { font-size: 2em; width: 100%; border-radius: 10px; border: 2px solid #d1c7bc; text-align: right; box-sizing: border-box; background: #fffcf5; padding: 10px; margin: 8px 0; font-weight: bold; }
@@ -45,52 +32,34 @@
         .pay-row { display: flex; gap: 8px; margin: 10px 0; }
         .pay-btn { flex: 1; padding: 15px; border-radius: 10px; border: 1px solid #ccc; background: white; font-weight: bold; cursor: pointer; font-size: 1.1em; }
         .pay-btn.active { background: var(--accent-brown); color: white; border-color: var(--accent-brown); }
-        .size-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
-        .size-option { padding: 15px; border: 1px solid #ddd; border-radius: 10px; text-align: center; cursor: pointer; background: #fff; line-height: 1.3; }
-        .size-option strong { font-size: 1.2em; display: block; word-break: break-all; }
-        .size-option b { color: var(--price-red); display: block; margin-top: 3px; }
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: none; justify-content: center; align-items: center; padding: 20px; }
         .modal-content { background: white; width: 100%; max-width: 1000px; max-height: 90vh; border-radius: 20px; padding: 25px; display: flex; flex-direction: column; overflow: hidden; }
         .scroll-v { flex: 1; overflow: auto; border: 1px solid #eee; margin-top: 15px; }
         table { width: 100%; border-collapse: collapse; min-width: 850px; }
         th, td { border: 1px solid #eee; padding: 10px; text-align: center; }
         th { background: #f8f5f2; position: sticky; top: 0; z-index: 10; }
-        .admin-input { width: 60px; padding: 3px; border: 1px solid #ddd; font-size: 12px; }
         .sz-box { border: 1px solid #ddd; padding: 5px; background: #f9f9f9; border-radius: 5px; margin-bottom: 5px; position: relative; text-align: left; }
-        .del-sz-btn { position: absolute; top: 2px; right: 2px; color: red; border: none; background: none; cursor: pointer; font-weight: bold; font-size: 14px; }
-        .sz-move-btns { position: absolute; bottom: 2px; right: 2px; display: flex; gap: 2px; }
-        .sz-move-btns button { padding: 0 4px; font-size: 12px; cursor: pointer; background: #fff; border: 1px solid #888; border-radius: 3px; font-weight: bold; }
-        .sz-move-btns button:hover { background: #eee; }
-        .hot-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px dashed #eee; font-size: 0.9em; }
-        .log-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #f0f0f0; }
-        .is-refunded { text-decoration: line-through; color: #bbb !important; }
+        .del-sz-btn { position: absolute; top: 2px; right: 2px; color: red; border: none; background: none; cursor: pointer; font-weight: bold; }
         .promo-tag { background: var(--promo-orange); color: white; padding: 5px 10px; border-radius: 8px; font-size: 0.9em; margin-bottom: 10px; display: inline-block; font-weight: bold; }
-
-        /* 💡 修正：列印樣式優化，平板列印時只顯示收據內容 */
-        @media print {
-            body * { visibility: hidden; }
-            #invoice-print, #invoice-print * { visibility: visible; }
-            #invoice-print { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; padding: 20px; background: white; z-index: 9999; }
-            .no-print { display: none !important; }
-        }
+        @media print { .no-print { display: none !important; } .modal { position: static; display: block; background: none; } .modal-content { max-width: 100%; padding: 0; border: none; } }
     </style>
 </head>
 <body>
 
-<div id="auth-guard"><h2>🧸 Allove Baby 系統安全檢查中...</h2></div>
+<div id="auth-guard"><h2>🧸 Allove Baby 安全檢查中...</h2></div>
 
 <div id="main-content" style="display:none;">
     <header class="no-print">Allove Baby POS 管理系統</header>
     <div class="search-bar-container no-print">
-        <input type="text" id="global-search" placeholder="🔍 搜尋商品名稱..." oninput="syncSearch(this.value, 'admin-search')">
+        <input type="text" id="global-search" placeholder="🔍 搜尋商品..." oninput="syncSearch(this.value, 'admin-search')">
     </div>
     <div id="navbar" class="nav-bar no-print"></div>
     <div class="container no-print">
-        <div id="item-area" class="item-section">讀取中...</div>
+        <div id="item-area" class="item-section"></div>
         <div class="checkout-section">
             <div class="card">
                 <strong>🛒 購物清單</strong>
-                <div id="cart-list" style="margin-top: 10px; min-height: 50px;"></div>
+                <div id="cart-list" style="margin: 10px 0; min-height: 50px; border-bottom: 1px solid #eee;"></div>
                 <input type="number" id="discount" class="big-input" placeholder="折扣金額" oninput="calc()">
                 <input type="text" id="order-note" placeholder="備註/客戶姓名" style="width:100%; padding:10px; box-sizing:border-box; border-radius:8px; border:1px solid #ccc;">
                 <div class="total-display">$<span id="final-total">0</span></div>
@@ -107,16 +76,7 @@
                 </div>
                 <button onclick="checkout()" style="width:100%; padding:20px; background:var(--profit-green); color:white; border:none; border-radius:15px; font-size:1.5em; font-weight:bold; cursor:pointer;">結帳完成</button>
             </div>
-            <div class="card">
-                <div style="display:flex; justify-content:space-between;"><strong>📋 今日紀錄</strong><button onclick="generateReport()" style="background:var(--accent-brown); color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">報表</button></div>
-                <div id="today-log" style="font-size: 0.9em; margin-top:10px;"></div>
-            </div>
-            <div class="card" style="border-color: #ffcccc;"><strong>📢 補貨提醒</strong><div id="stock-alert-list" style="font-size: 0.8em; margin-top:5px; max-height: 80px; overflow-y: auto;"></div></div>
-            <div class="card"><strong>🔥 當週熱賣前五</strong><div id="weekly-hot-list" style="margin-top:10px;"></div></div>
-            <div style="display:flex; gap:10px; padding-bottom: 50px;">
-                <button onclick="openM('admin-modal')" style="flex:1; padding:15px; border-radius:10px; cursor:pointer; background:white; border:2px solid var(--main-brown); font-weight:bold;">🛠️ 管理中心</button>
-                <button onclick="openM('history-modal')" style="flex:1; padding:15px; border-radius:10px; cursor:pointer; background:white; border:2px solid var(--main-brown); font-weight:bold;">📜 歷史報表</button>
-            </div>
+            <div class="card"><strong>📋 今日紀錄</strong><div id="today-log" style="font-size: 0.9em; margin-top:10px;"></div></div>
         </div>
     </div>
 </div>
@@ -124,51 +84,25 @@
 <div id="admin-modal" class="modal">
     <div class="modal-content">
         <div style="display:flex; justify-content:space-between; align-items:center;"><h3>🛠️ 管理中心</h3><button onclick="closeM('admin-modal')">✕</button></div>
-        <div style="margin-bottom: 10px; display:flex; gap:10px; align-items:center; background:#f8f5f2; padding:10px; border-radius:12px;">
-            <input type="text" id="admin-search" placeholder="🔍 搜尋商品 (自動展開分類)..." oninput="syncSearch(this.value, 'global-search')">
-        </div>
-        <div style="background:#f0fdf4; padding:12px; margin-bottom:10px; display:flex; gap:5px; flex-wrap:wrap; border-radius:10px;">
+        <div style="background:#f0fdf4; padding:12px; display:flex; gap:5px; flex-wrap:wrap; border-radius:10px;">
             <select id="sel-cat"></select>
             <input type="text" id="n-n" placeholder="款式名稱" style="width:110px;">
-            <input type="number" id="n-c" placeholder="成本" class="admin-input">
-            <input type="number" id="n-p" placeholder="售價" class="admin-input">
-            <input type="text" id="n-s" placeholder="規格(例:紅,藍)" style="width:130px;">
-            <input type="text" id="n-m" placeholder="優惠備註" style="width:120px;">
+            <input type="number" id="n-c" placeholder="成本" style="width:60px;">
+            <input type="number" id="n-p" placeholder="售價" style="width:60px;">
+            <input type="text" id="n-s" placeholder="規格(紅,藍)" style="width:100px;">
+            <input type="text" id="n-m" placeholder="優惠備註" style="width:100px;">
             <button onclick="addP()" style="background:var(--profit-green); color:white; border:none; padding:5px 10px; border-radius:5px;">新增</button>
             <button onclick="addC()" style="background:var(--accent-brown); color:white; border:none; padding:5px 10px; border-radius:5px;">新分類</button>
         </div>
-        <div class="scroll-v"><table><thead><tr><th>排序</th><th>品名</th><th>規格詳情</th><th>移/顯</th><th>優惠備註</th><th>刪</th></tr></thead><tbody id="admin-tbody"></tbody></table></div>
-    </div>
-</div>
-
-<div id="size-modal" class="modal"><div class="modal-content" style="max-width:400px;"><h3 id="size-modal-title" style="margin-bottom:5px;">選擇規格</h3><div id="promo-notice" class="promo-tag" style="display:none;"></div><div id="size-modal-grid" class="size-grid"></div><button onclick="closeM('size-modal')" style="width:100%; padding:15px; margin-top:20px; border:none; background:#eee; border-radius:10px;">取消</button></div></div>
-
-<div id="invoice-modal" class="modal">
-    <div class="modal-content" style="max-width: 800px; padding:0;">
-        <div id="invoice-print" style="padding:40px; background: white;">
-            <div style="display:flex; justify-content:space-between; border-bottom:3px solid #000; padding-bottom:10px;">
-                <h1>Allove Baby</h1>
-                <div style="text-align:right;">
-                    <p id="inv-date"></p>
-                    <p id="inv-id" style="font-weight:bold;"></p>
-                </div>
-            </div>
-            <p style="margin-top:20px;"><strong>客戶：</strong> <span id="inv-cust"></span></p>
-            <table style="width:100%; border-collapse:collapse; margin-top:20px;" border="1">
-                <thead><tr><th>品名</th><th>數量</th><th>單價</th></tr></thead>
-                <tbody id="inv-body"></tbody>
-            </table>
-            <h2 style="text-align:right; margin-top:30px;">總計：$<span id="inv-total"></span></h2>
-        </div>
-        <div class="no-print" style="padding:20px; display:flex; gap:10px;">
-            <button onclick="window.print()" style="flex:1; padding:15px; background:var(--profit-green); color:white; border-radius:10px; border:none; font-weight:bold; cursor:pointer;">🖨️ 列印</button>
-            <button onclick="closeM('invoice-modal')" style="flex:1; padding:15px; background:#ccc; border-radius:10px; border:none; cursor:pointer;">關閉</button>
+        <div class="scroll-v">
+            <table><thead><tr><th>排序</th><th>品名</th><th>規格詳情</th><th>移/顯</th><th>優惠備註</th><th>刪</th></tr></thead><tbody id="admin-tbody"></tbody></table>
         </div>
     </div>
 </div>
 
-<div id="history-modal" class="modal"><div class="modal-content"><div style="display:flex; justify-content:space-between;"><h3>📜 歷史紀錄</h3><button onclick="closeM('history-modal')">✕</button></div><div style="margin:10px 0;">月份：<input type="month" id="h-month" onchange="renderH()"><button onclick="exportXLS()" style="margin-left:10px;">匯出 Excel</button></div><div id="h-sum" style="padding:15px; background:#fff5eb; border-radius:10px; font-weight:bold; margin-bottom:10px;"></div><div class="scroll-v"><table><thead><tr><th>時間</th><th>品項</th><th>總額</th><th>毛利</th><th>方式</th><th>操作</th></tr></thead><tbody id="h-tbody"></tbody></table></div></div></div>
-<div id="report-modal" class="modal"><div class="modal-content" style="max-width:400px; height:auto;"><h2>📝 今日報表</h2><div id="report-body" style="line-height:2; background:#fffaf5; padding:15px; border-radius:10px;"></div><button onclick="closeM('report-modal')" style="width:100%; padding:10px; margin-top:10px; border:none; background:#eee; cursor:pointer;">關閉</button></div></div>
+<div id="size-modal" class="modal"><div class="modal-content" style="max-width:400px;"><h3 id="size-modal-title"></h3><div id="promo-notice" class="promo-tag"></div><div id="size-modal-grid" class="product-grid" style="grid-template-columns: repeat(2, 1fr);"></div><button onclick="closeM('size-modal')" style="width:100%; padding:15px; margin-top:20px; border:none; background:#eee; border-radius:10px;">取消</button></div></div>
+
+<div id="invoice-modal" class="modal"><div class="modal-content" style="max-width: 600px;"><div id="invoice-print" style="padding:20px; background:white; color:black;"><h2 style="text-align:center;">Allove Baby 出貨單</h2><p id="inv-date"></p><p id="inv-id"></p><p>客戶：<span id="inv-cust"></span></p><hr><table style="width:100%;"><tbody id="inv-body"></tbody></table><hr><h3 style="text-align:right;">總計：$<span id="inv-total"></span></h3></div><button onclick="window.print()" style="padding:15px; background:var(--profit-green); color:white; border:none; width:100%; margin-top:10px;">🖨️ 列印</button><button onclick="closeM('invoice-modal')" style="width:100%; margin-top:10px; padding:10px;">關閉</button></div></div>
 
 <script>
     const firebaseConfig = { apiKey: "AIzaSyA-cxLaa0z17gjPYYmXJBFHhlvnHZMn0Wk", authDomain: "allove-75af5.firebaseapp.com", databaseURL: "https://allove-75af5-default-rtdb.firebaseio.com/", projectId: "allove-75af5", storageBucket: "allove-75af5.firebasestorage.app", messagingSenderId: "1046256611808", appId: "1:1046256611808:web:8b7ede065e065a72c5fb85" };
@@ -176,243 +110,174 @@
     const db = firebase.database();
     const auth = firebase.auth();
 
-    let inv = []; let orders = []; let cart = []; let payM = '現金'; let lastCatIdx = 0; let searchQuery = "";
-    let adminCollapsed = {}; 
+    let inv = [], orders = [], cart = [], payM = '現金', searchQuery = "";
+    let adminCollapsed = {};
 
-    function init() { auth.signInAnonymously().then(() => { document.getElementById('auth-guard').style.display = 'none'; document.getElementById('main-content').style.display = 'block'; startDatabaseListeners(); }); }
+    function init() { auth.signInAnonymously().then(() => { document.getElementById('auth-guard').style.display='none'; document.getElementById('main-content').style.display='block'; startDatabaseListeners(); }); }
 
     function startDatabaseListeners() {
-        db.ref('inventory').on('value', snap => { inv = snap.val() || []; renderUI(); renderAdmin(); renderStockAlert(); });
-        db.ref('orders').on('value', snap => {
-            const data = snap.val(); orders = data ? Object.keys(data).map(k => ({...data[k], key: k})) : [];
-            renderLog(); renderWeeklyHot(); if(document.getElementById('history-modal').style.display === 'flex') renderH();
-        });
-    }
-
-    function checkDuplicateName(name, currentPath = null) {
-        let found = null;
-        inv.forEach((cat, ci) => {
-            (cat.items || []).forEach((it, ii) => {
-                if (it.n.trim() === name.trim()) {
-                    if (!currentPath || currentPath.ci !== ci || currentPath.ii !== ii) found = cat.cat;
-                }
-            });
-        });
-        return found;
-    }
-
-    function syncSearch(val, targetId) { 
-        searchQuery = val.toLowerCase().trim(); 
-        document.getElementById(targetId).value = val; 
-        renderUI(); 
-        renderAdmin(); 
+        db.ref('inventory').on('value', snap => { inv = snap.val() || []; renderUI(); renderAdmin(); });
+        db.ref('orders').on('value', snap => { const d = snap.val(); orders = d ? Object.keys(d).map(k => ({...d[k], key: k})) : []; renderLog(); });
     }
 
     function renderUI() {
         const area = document.getElementById('item-area'), nav = document.getElementById('navbar');
         area.innerHTML = ''; nav.innerHTML = '';
         inv.forEach((cat, ci) => {
-            if (!searchQuery) nav.innerHTML += `<button class="nav-btn" onclick="document.getElementById('cat-${ci}').scrollIntoView({behavior:'smooth'})">${cat.cat}</button>`;
-            let filteredItems = (cat.items || []).filter(it => it.n.toLowerCase().includes(searchQuery));
-            if (filteredItems.length === 0 && searchQuery) return;
+            nav.innerHTML += `<button class="nav-btn" onclick="document.getElementById('cat-${ci}').scrollIntoView()">${cat.cat}</button>`;
             let h = `<div id="cat-${ci}" class="cat-title">${cat.cat} ${cat.isPre ? '<span class="preorder-tag">預購區</span>' : ''}</div><div class="product-grid">`;
             (cat.items || []).forEach((it, ii) => {
-                if (it.show === false) return;
-                if (searchQuery && !it.n.toLowerCase().includes(searchQuery)) return;
+                if (it.show === false || (searchQuery && !it.n.toLowerCase().includes(searchQuery))) return;
                 h += `<div class="p-btn" onclick="openSizePicker(${ci}, ${ii})"><div class="p-name">${it.n}</div><div class="p-price">$${it.p}</div></div>`;
             });
             area.innerHTML += h + '</div>';
         });
-        const sc = document.getElementById('sel-cat');
-        sc.innerHTML = inv.map((c,i)=>`<option value="${i}">${c.cat}</option>`).join('');
-        sc.value = lastCatIdx; sc.onchange = (e) => { lastCatIdx = e.target.value; };
+        document.getElementById('sel-cat').innerHTML = inv.map((c,i)=>`<option value="${i}">${c.cat}</option>`).join('');
     }
 
     function openSizePicker(ci, ii) {
         const it = inv[ci].items[ii];
         document.getElementById('size-modal-title').innerText = it.n;
-        const promoTag = document.getElementById('promo-notice');
-        if(it.promo) { promoTag.innerText = `🎁 優惠提醒：${it.promo}`; promoTag.style.display = 'inline-block'; }
-        else { promoTag.style.display = 'none'; }
+        const pTag = document.getElementById('promo-notice');
+        pTag.innerText = it.promo ? `🎁 ${it.promo}` : '';
+        pTag.style.display = it.promo ? 'block' : 'none';
         const grid = document.getElementById('size-modal-grid'); grid.innerHTML = '';
         Object.keys(it.sizes||{}).forEach(sz => {
             if (it.sizeShow && it.sizeShow[sz] === false) return;
-            const stock = it.sizes[sz] || 0;
-            const szPrice = (it.szPrices?.[sz] !== undefined) ? it.szPrices[sz] : it.p;
-            const szCost = (it.szCosts?.[sz] !== undefined) ? it.szCosts[sz] : it.c;
-            const btn = document.createElement('button');
-            btn.className = 'size-option';
-            if (!inv[ci].isPre && stock <= 0) btn.disabled = true;
-            btn.innerHTML = `<strong>${sz}</strong><b>$${szPrice}</b><span>${inv[ci].isPre ? '預購' : (stock > 0 ? '存:'+stock : '缺貨')}</span>`;
-            btn.onclick = () => { addCart(it.n, szPrice, szCost, sz, ci, ii); closeM('size-modal'); };
-            grid.appendChild(btn);
+            const b = document.createElement('button');
+            b.style.padding = '10px'; b.innerHTML = `${sz}<br>$${it.szPrices?.[sz]??it.p}<br><small>存:${it.sizes[sz]}</small>`;
+            b.onclick = () => { addCart(it.n, it.szPrices?.[sz]??it.p, it.szCosts?.[sz]??it.c, sz, ci, ii); closeM('size-modal'); };
+            grid.appendChild(b);
         });
         openM('size-modal');
+    }
+
+    function addCart(n, p, c, sz, ci, ii) { cart.push({n, p, c: (c||0), sz, ci, ii}); renderCart(); }
+    
+    function renderCart() { 
+        document.getElementById('cart-list').innerHTML = cart.map((it, i) => `<div style="display:flex;justify-content:space-between;padding:5px;"><span>${it.n}(${it.sz}) - $${it.p}</span><span onclick="cart.splice(${i},1);renderCart()" style="color:red;cursor:pointer;">✕</span></div>`).join(''); 
+        calc(); 
+    }
+
+    function calc() { 
+        const s = cart.reduce((a, b) => a + b.p, 0), d = Number(document.getElementById('discount').value) || 0; 
+        const f = s - d; document.getElementById('final-total').innerText = f; 
+        const cin = Number(document.getElementById('cash-in').value) || 0;
+        document.getElementById('change').innerText = cin > f ? cin - f : 0;
+    }
+
+    function setPay(m, b) { payM = m; document.querySelectorAll('.pay-btn').forEach(btn => btn.classList.remove('active')); b.classList.add('active'); }
+
+    // --- 核心修正：結帳邏輯 (含成本扣除、自動清空、商城彈窗) ---
+    function checkout() {
+        if (!cart.length) return;
+        const total = Number(document.getElementById('final-total').innerText);
+        const discount = Number(document.getElementById('discount').value) || 0;
+        const note = document.getElementById('order-note').value;
+        
+        // 1. 計算毛利：所有商品的 (售價 - 成本) 總和，再減掉整單折扣
+        // 若售價(p)為0（贈品），則 (0 - 成本) 會正確計算為負值
+        let profit = 0;
+        cart.forEach(item => { profit += (item.p - item.c); });
+        profit -= discount;
+
+        const date = document.getElementById('is-backdate').checked && document.getElementById('backdate-val').value 
+                   ? document.getElementById('backdate-val').value.replace(/-/g,'/') 
+                   : new Date().toLocaleDateString('zh-TW');
+
+        const order = {
+            d: date,
+            t: new Date().toLocaleTimeString('zh-TW',{hour12:false}),
+            items: cart.map(i => `${i.n}(${i.sz})`).join(', '),
+            details: cart,
+            total: total,
+            profit: profit,
+            pay: payM,
+            note: note,
+            isRefund: false
+        };
+
+        // 更新庫存
+        cart.forEach(item => { if(inv[item.ci].items[item.ii].sizes) inv[item.ci].items[item.ii].sizes[item.sz]--; });
+
+        // 寫入資料庫
+        db.ref('orders').push(order);
+        db.ref('inventory').set(inv);
+
+        // 2. 商城判斷與出貨單彈窗
+        if(payM === '網路商城') {
+            document.getElementById('inv-date').innerText = '日期：' + order.d;
+            document.getElementById('inv-id').innerText = '序號：' + Date.now().toString().slice(-6);
+            document.getElementById('inv-cust').innerText = note || '一般客戶';
+            document.getElementById('inv-body').innerHTML = cart.map(i => `<tr><td>${i.n}(${i.sz})</td><td align="right">$${i.p}</td></tr>`).join('');
+            document.getElementById('inv-total').innerText = total;
+            openM('invoice-modal');
+        } else {
+            alert("✅ 結帳完成！");
+        }
+
+        // 3. 結帳後自動清空所有狀態
+        cart = [];
+        renderCart();
+        document.getElementById('order-note').value = '';
+        document.getElementById('discount').value = '';
+        document.getElementById('cash-in').value = '';
+        document.getElementById('is-backdate').checked = false;
+        document.getElementById('backdate-val').value = '';
     }
 
     function renderAdmin() {
         const tbody = document.getElementById('admin-tbody'); tbody.innerHTML = '';
         inv.forEach((cat, ci) => {
-            let filteredItems = (cat.items || []).filter(it => it.n.toLowerCase().includes(searchQuery));
-            if (filteredItems.length === 0 && searchQuery) return;
-            let isCollapsed = searchQuery ? false : (adminCollapsed[ci] || false);
-            tbody.innerHTML += `<tr class="admin-cat-row" onclick="toggleAdminCat(${ci})"><td colspan="3" align="left"><b>${isCollapsed?'▶':'▼'} 📁 ${cat.cat}</b> <label onclick="event.stopPropagation()"><input type="checkbox" ${cat.isPre ? 'checked' : ''} onchange="updCat(${ci}, 'isPre', this.checked)"> 預購</label></td><td><button onclick="event.stopPropagation();moveCat(${ci},-1)">↑</button><button onclick="event.stopPropagation();moveCat(${ci},1)">↓</button> <button onclick="event.stopPropagation();editC(${ci})">改名</button></td><td></td><td><button onclick="event.stopPropagation();delC(${ci})" style="color:red">刪</button></td></tr>`;
+            tbody.innerHTML += `<tr style="background:#eee" onclick="adminCollapsed[${ci}]=!adminCollapsed[${ci}];renderAdmin()">
+                <td colspan="3"><b>${adminCollapsed[ci]?'▶':'▼'} ${cat.cat}</b></td>
+                <td><button onclick="event.stopPropagation();moveCat(${ci},-1)">↑</button></td>
+                <td><input type="text" value="${cat.cat}" onchange="inv[${ci}].cat=this.value;db.ref('inventory').set(inv)"></td>
+                <td><button onclick="event.stopPropagation();delC(${ci})">刪</button></td></tr>`;
+            if(adminCollapsed[ci]) return;
             (cat.items || []).forEach((it, ii) => {
-                if (searchQuery && !it.n.toLowerCase().includes(searchQuery)) return;
-                let szKeys = Object.keys(it.sizes||{});
-                let szCtrl = `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px;">`;
-                szKeys.forEach((sz, sIdx) => {
-                    szCtrl += `<div class="sz-box">
-                        <button class="del-sz-btn" onclick="delSize(${ci},${ii},'${sz}')">✕</button>
-                        <input type="text" value="${sz}" onchange="renameSize(${ci},${ii},'${sz}',this.value)" style="width:40px;font-size:10px"><br>
-                        本:<input type="number" value="${it.szCosts?.[sz]??it.c}" onchange="updSzVal(${ci},${ii},'${sz}','szCosts',this.value)" class="admin-input"><br>
-                        售:<input type="number" value="${it.szPrices?.[sz]??it.p}" onchange="updSzVal(${ci},${ii},'${sz}','szPrices',this.value)" class="admin-input"><br>
-                        庫:<input type="number" value="${it.sizes[sz]}" onchange="updSize(${ci},${ii},'${sz}',this.value)" class="admin-input"><br>
-                        <input type="checkbox" ${(it.sizeShow && it.sizeShow[sz]!==false)?'checked':''} onchange="updSizeShow(${ci},${ii},'${sz}',this.checked)"> 顯示
-                        <div class="sz-move-btns">
-                            <button onclick="moveSize(${ci},${ii},${sIdx},-1)">←</button>
-                            <button onclick="moveSize(${ci},${ii},${sIdx},1)">→</button>
-                        </div>
+                let szH = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">`;
+                Object.keys(it.sizes||{}).forEach(sz => {
+                    szH += `<div class="sz-box">
+                        <button class="del-sz-btn" onclick="delete it.sizes['${sz}'];db.ref('inventory').set(inv)">✕</button>
+                        ${sz}<br>庫:<input type="number" value="${it.sizes[sz]}" style="width:40px" onchange="inv[${ci}].items[${ii}].sizes['${sz}']=Number(this.value);db.ref('inventory').set(inv)">
                     </div>`;
                 });
-                szCtrl += `<div style="grid-column: span 2; display:flex; gap:5px;"><button onclick="addNewSize(${ci},${ii})">+單個</button><button onclick="addBatchSize(${ci},${ii})">➕批量</button></div></div>`;
-                tbody.innerHTML += `<tr class="${isCollapsed?'collapsed-row':''}"><td><button onclick="move(${ci},${ii},-1)">↑</button><button onclick="move(${ci},${ii},1)">↓</button></td><td><input type="text" value="${it.n}" onchange="upd(${ci},${ii},'n',this.value)" style="width:90px"></td><td>${szCtrl}</td><td><button onclick="changeProductCat(${ci},${ii})">移</button><br><input type="checkbox" ${it.show!==false?'checked':''} onchange="upd(${ci},${ii},'show',this.checked)"></td><td><input type="text" value="${it.promo||''}" placeholder="備註" onchange="upd(${ci},${ii},'promo',this.value)" style="width:90px; color:var(--promo-orange); font-weight:bold;"></td><td onclick="delI(${ci},${ii})" style="color:red;cursor:pointer">✕</td></tr>`;
+                szH += `<button onclick="addBatchSize(${ci},${ii})">➕批量</button></div>`;
+                tbody.innerHTML += `<tr>
+                    <td><button onclick="move(${ci},${ii},-1)">↑</button></td>
+                    <td><input type="text" value="${it.n}" onchange="inv[${ci}].items[${ii}].n=this.value;db.ref('inventory').set(inv)" style="width:80px"></td>
+                    <td>${szH}</td>
+                    <td><input type="checkbox" ${it.show!==false?'checked':''} onchange="inv[${ci}].items[${ii}].show=this.checked;db.ref('inventory').set(inv)"></td>
+                    <td><input type="text" value="${it.promo||''}" onchange="inv[${ci}].items[${ii}].promo=this.value;db.ref('inventory').set(inv)" style="width:80px;color:orange;"></td>
+                    <td><button onclick="delI(${ci},${ii})">✕</button></td></tr>`;
             });
         });
     }
 
-    function moveSize(ci, ii, sIdx, dir) {
-        const it = inv[ci].items[ii];
-        const entries = Object.entries(it.sizes);
-        const targetIdx = sIdx + dir;
-        if (targetIdx < 0 || targetIdx >= entries.length) return;
-        const item = entries.splice(sIdx, 1)[0];
-        entries.splice(targetIdx, 0, item);
-        const newSizes = {}, newShow = {}, newCosts = {}, newPrices = {};
-        entries.forEach(([key, val]) => {
-            newSizes[key] = val;
-            newShow[key] = (it.sizeShow && it.sizeShow[key] !== undefined) ? it.sizeShow[key] : true;
-            newCosts[key] = (it.szCosts && it.szCosts[key] !== undefined) ? it.szCosts[key] : it.c;
-            newPrices[key] = (it.szPrices && it.szPrices[key] !== undefined) ? it.szPrices[key] : it.p;
-        });
-        it.sizes = newSizes; it.sizeShow = newShow; it.szCosts = newCosts; it.szPrices = newPrices;
-        db.ref('inventory').set(inv);
-    }
-
-    function toggleAdminCat(ci) { adminCollapsed[ci] = !adminCollapsed[ci]; renderAdmin(); }
-    function delSize(ci, ii, sz) { if(!confirm(`刪除「${sz}」？`)) return; const it=inv[ci].items[ii]; delete it.sizes[sz]; if(it.sizeShow) delete it.sizeShow[sz]; if(it.szCosts) delete it.szCosts[sz]; if(it.szPrices) delete it.szPrices[sz]; db.ref('inventory').set(inv); }
     function addBatchSize(ci, ii) {
-        const input = prompt("規格名稱(逗號隔開):"); if (!input) return;
-        const names = input.split(/[,，\s]+/).map(s => s.trim()).filter(s => s !== "");
-        const it = inv[ci].items[ii]; if(!it.sizes) it.sizes={}; if(!it.sizeShow) it.sizeShow={}; if(!it.szCosts) it.szCosts={}; if(!it.szPrices) it.szPrices={};
-        names.forEach(name => { if (it.sizes[name]===undefined) { it.sizes[name]=1; it.sizeShow[name]=true; it.szCosts[name]=it.c; it.szPrices[name]=it.p; } });
+        let s = prompt("輸入規格(逗號隔開):"); if(!s) return;
+        let it = inv[ci].items[ii]; if(!it.sizes) it.sizes={};
+        s.split(/[,，]+/).forEach(x => { x=x.trim(); if(x) it.sizes[x]=1; });
         db.ref('inventory').set(inv);
     }
-    function renameSize(ci, ii, oldK, newK) { if(!newK || oldK===newK) return; const it=inv[ci].items[ii]; 
-        const newSizes = {}, newShow = {}, newCosts = {}, newPrices = {};
-        Object.keys(it.sizes).forEach(k => {
-            let key = (k === oldK) ? newK : k;
-            newSizes[key] = it.sizes[k];
-            newShow[key] = it.sizeShow ? it.sizeShow[k] : true;
-            newCosts[key] = it.szCosts ? it.szCosts[k] : it.c;
-            newPrices[key] = it.szPrices ? it.szPrices[k] : it.p;
-        });
-        it.sizes = newSizes; it.sizeShow = newShow; it.szCosts = newCosts; it.szPrices = newPrices;
-        db.ref('inventory').set(inv); 
-    }
-    function addNewSize(ci, ii) { const name=prompt("規格名"); if(!name) return; const it=inv[ci].items[ii]; if(!it.sizes) it.sizes={}; if(!it.sizeShow) it.sizeShow={}; if(!it.szCosts) it.szCosts={}; if(!it.szPrices) it.szPrices={}; it.sizes[name]=1; it.sizeShow[name]=true; it.szCosts[name]=it.c; it.szPrices[name]=it.p; db.ref('inventory').set(inv); }
-    function updSzVal(ci, ii, sz, f, v) { if(!inv[ci].items[ii][f]) inv[ci].items[ii][f]={}; inv[ci].items[ii][f][sz]=Number(v); db.ref('inventory').set(inv); }
-    function updSize(ci, ii, sz, v) { inv[ci].items[ii].sizes[sz]=Number(v); db.ref('inventory').set(inv); }
-    function updSizeShow(ci, ii, sz, v) { if(!inv[ci].items[ii].sizeShow) inv[ci].items[ii].sizeShow={}; inv[ci].items[ii].sizeShow[sz]=v; db.ref('inventory').set(inv); }
-    function updCat(ci, k, v) { inv[ci][k] = v; db.ref('inventory').set(inv); }
-    function upd(ci, ii, k, v) { if(k==='n'){ const d=checkDuplicateName(v,{ci,ii}); if(d){ alert(`⚠️ 「${v}」已存在於「${d}」！`); renderAdmin(); return; }} inv[ci].items[ii][k]=(k==='n'||k==='show'||k==='promo'?v:Number(v)); db.ref('inventory').set(inv); }
     function addP() {
-        const ci=document.getElementById('sel-cat').value, n=document.getElementById('n-n').value;
-        if(!n) return;
-        const d=checkDuplicateName(n); if(d){ alert(`⚠️ 「${n}」已存在於「${d}」！`); return; }
+        const ci=document.getElementById('sel-cat').value, n=document.getElementById('n-n').value; if(!n) return;
         const c=Number(document.getElementById('n-c').value)||0, p=Number(document.getElementById('n-p').value)||0, s=document.getElementById('n-s').value, m=document.getElementById('n-m').value;
-        const sArr = s?s.split(','):['F']; const sO={}, shO={}, scO={}, spO={};
-        sArr.forEach(x=>{ x=x.trim(); sO[x]=1; shO[x]=true; scO[x]=c; spO[x]=p; });
-        if(!inv[ci].items) inv[ci].items=[]; inv[ci].items.push({n,c,p,promo:m,show:true,sizes:sO,sizeShow:shO,szCosts:scO,szPrices:spO});
-        db.ref('inventory').set(inv);
-        document.getElementById('n-n').value=''; document.getElementById('n-m').value='';
-    }
-    function changeProductCat(oldCi, ii) {
-        const opts = inv.map((c, i) => `${i}: ${c.cat}`).join('\n');
-        const newCi = parseInt(prompt(`輸入目標分類編號：\n${opts}`, oldCi));
-        if (isNaN(newCi) || newCi < 0 || newCi >= inv.length || newCi === oldCi) return;
-        const prod = inv[oldCi].items.splice(ii, 1)[0];
-        if(!inv[newCi].items) inv[newCi].items = []; inv[newCi].items.push(prod);
+        const sO={}; (s?s.split(','):['F']).forEach(x=>sO[x.trim()]=1);
+        if(!inv[ci].items) inv[ci].items=[];
+        inv[ci].items.push({n,c,p,promo:m,show:true,sizes:sO});
         db.ref('inventory').set(inv);
     }
     function addC() { let n=prompt("分類名"); if(n){ inv.push({cat:n, items:[], isPre:false}); db.ref('inventory').set(inv); }}
-    function moveCat(ci, d) { if(ci+d>=0 && ci+d<inv.length){ [inv[ci],inv[ci+d]]=[inv[ci+d],inv[ci]]; db.ref('inventory').set(inv); }}
-    function editC(ci) { let n=prompt("改名",inv[ci].cat); if(n){ inv[ci].cat=n; db.ref('inventory').set(inv); }}
-    function move(ci, ii, d) { let l=inv[ci].items; if(ii+d>=0 && ii+d<l.length){ [l[ii],l[ii+d]]=[l[ii+d],l[ii]]; db.ref('inventory').set(inv); }}
-    function delC(ci) { if(confirm("刪除分類？")) { inv.splice(ci,1); db.ref('inventory').set(inv); }}
-    function delI(ci, ii) { if(confirm("刪除商品？")) { inv[ci].items.splice(ii,1); db.ref('inventory').set(inv); }}
-    function addCart(n, p, c, sz, ci, ii) { cart.push({n, p, c, sz, ci, ii}); renderCart(); }
-    function renderCart() { document.getElementById('cart-list').innerHTML = cart.map((it, i) => `<div style="display:flex;justify-content:space-between;padding:5px 0;"><span>${it.n}(${it.sz})</span><span onclick="cart.splice(${i},1);renderCart()" style="color:red;cursor:pointer;">✕</span></div>`).join(''); calc(); }
-    function calc() { const s = cart.reduce((a, b) => a + b.p, 0), d = Number(document.getElementById('discount').value) || 0; const f = s - d; document.getElementById('final-total').innerText = f; const c = Number(document.getElementById('cash-in').value) || 0; document.getElementById('change').innerText = c > f ? c - f : 0; }
-    function setPay(m, btn) { payM = m; document.querySelectorAll('.pay-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
-    
-    // 💡 結帳邏輯修正：確保贈品(售價0)也會正確扣除成本計算負毛利
-    function checkout() {
-        if (!cart.length) return;
-        const discount = Number(document.getElementById('discount').value) || 0;
-        const totalAmount = Number(document.getElementById('final-total').innerText);
-        
-        // 核心修正：(售價 - 成本) 的總和再減掉折扣 = 最終淨利
-        const profit = cart.reduce((acc, item) => acc + (item.p - (item.c || 0)), 0) - discount;
-        
-        const d = document.getElementById('is-backdate').checked && document.getElementById('backdate-val').value ? document.getElementById('backdate-val').value.replace(/-/g,'/') : new Date().toLocaleDateString('zh-TW');
-        const order = {d, t: new Date().toLocaleTimeString('zh-TW',{hour12:false}), items: cart.map(i=>`${i.n}(${i.sz})`).join(', '), details: cart, total: totalAmount, profit: profit, pay: payM, note: document.getElementById('order-note').value, isRefund: false};
-        
-        cart.forEach(item => { if(inv[item.ci].items[item.ii].sizes) inv[item.ci].items[item.ii].sizes[item.sz]--; });
-        db.ref('orders').push(order); db.ref('inventory').set(inv);
-        
-        if(payM === '網路商城') {
-            document.getElementById('inv-date').innerText = '日期：' + order.d; document.getElementById('inv-id').innerText = '單號：' + Date.now().toString().slice(-6);
-            document.getElementById('inv-cust').innerText = order.note || '無'; document.getElementById('inv-body').innerHTML = cart.map(i => `<tr><td>${i.n}(${i.sz})</td><td>1</td><td>$${i.p}</td></tr>`).join('');
-            document.getElementById('inv-total').innerText = totalAmount; openM('invoice-modal');
-        } else alert("結帳成功！");
-        
-        cart = []; renderCart(); document.getElementById('order-note').value = ''; document.getElementById('discount').value = ''; document.getElementById('cash-in').value = '';
-    }
-
-    function processRefund(k) {
-        if(!confirm("確定退貨？")) return;
-        const o = orders.find(x => x.key === k); if(!o || o.isRefund) return;
-        (o.details || []).forEach(i => { if(inv[i.ci] && inv[i.ci].items[i.ii]) inv[i.ci].items[i.ii].sizes[i.sz]++; });
-        cart = (o.details || []).map(i => ({...i})); renderCart();
-        db.ref('orders').child(k).update({ isRefund: true, total: 0, profit: 0 }); db.ref('inventory').set(inv);
-        closeM('history-modal'); alert("已標記退貨並回填購物車。");
-    }
-    function renderLog() { const today = new Date().toLocaleDateString('zh-TW'); const t = orders.filter(o => o.d === today).reverse().slice(0, 5); document.getElementById('today-log').innerHTML = t.map(o => `<div class="log-item"><span class="${o.isRefund?'is-refunded':''}">[${o.t}] $${o.total}</span>${!o.isRefund?`<button onclick="processRefund('${o.key}')">退</button>`:''}</div>`).join(''); }
-    function renderStockAlert() {
-        let a = []; inv.forEach(c => { if(c.isPre) return; (c.items||[]).forEach(it => { Object.keys(it.sizes||{}).forEach(sz => { if(it.sizes[sz]<=0 && (it.sizeShow && it.sizeShow[sz]!==false)) a.push(`${it.n}(${sz})`); })}); });
-        document.getElementById('stock-alert-list').innerHTML = a.map(x => `<div style="color:red;">● ${x} 缺貨</div>`).join('') || '庫存正常';
-    }
-    function renderWeeklyHot() {
-        const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7); const map = {};
-        orders.forEach(o => { if (!o.isRefund && new Date(o.d.replace(/\//g, '-')) >= weekAgo) o.items.split(', ').forEach(lb => map[lb] = (map[lb] || 0) + 1); });
-        const sorted = Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 5);
-        document.getElementById('weekly-hot-list').innerHTML = sorted.map((x, i) => `<div class="hot-item"><span>${i + 1}. ${x[0]}</span><b>${x[1]}件</b></div>`).join('') || '無數據';
-    }
-    function renderH() {
-        const m = document.getElementById('h-month').value; if(!m) return;
-        const [y, mm] = m.split('-'); const f = orders.filter(o => { const d = o.d.split('/'); return d[0]===y && parseInt(d[1])===parseInt(mm); });
-        let rev = 0, prof = 0;
-        document.getElementById('h-tbody').innerHTML = f.slice().reverse().map(o => {
-            if(!o.isRefund) { rev+=o.total; prof+=o.profit; }
-            return `<tr class="${o.isRefund?'is-refunded':''}"><td>${o.d} ${o.t}</td><td>${o.items}</td><td>$${o.total}</td><td>$${o.profit}</td><td>${o.pay}</td><td><button onclick="processRefund('${o.key}')">退</button></td></tr>`;
-        }).join('');
-        document.getElementById('h-sum').innerText = `${y}/${mm} 實收：$${rev} | 毛利：$${prof}`;
-    }
-    function generateReport() { const today = new Date().toLocaleDateString('zh-TW'); const f = orders.filter(o => o.d === today && !o.isRefund); let c=0,e=0,m=0,p=0; f.forEach(o=>{ if(o.pay==='現金') c+=o.total; else if(o.pay==='電支') e+=o.total; else m+=o.total; p+=o.profit; }); document.getElementById('report-body').innerHTML = `今日實收：$${c+e+m}<br>現金：$${c}<br>電支：$${e}<br>商城：$${m}<br>今日毛利：$${p}`; openM('report-modal'); }
-    function exportXLS() { const data = orders.map(o => ({"日期":o.d,"品項":o.items,"總額":o.isRefund?0:o.total,"毛利":o.isRefund?0:o.profit,"支付":o.pay,"備註":o.note})); const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Sales"); XLSX.writeFile(wb, `Report.xlsx`); }
-    function openM(id) { document.getElementById(id).style.display = 'flex'; }
-    function closeM(id) { document.getElementById(id).style.display = 'none'; }
+    function moveCat(ci, d) { if(inv[ci+d]){ [inv[ci],inv[ci+d]]=[inv[ci+d],inv[ci]]; db.ref('inventory').set(inv); }}
+    function move(ci, ii, d) { let l=inv[ci].items; if(l[ii+d]){ [l[ii],l[ii+d]]=[l[ii+d],l[ii]]; db.ref('inventory').set(inv); }}
+    function delC(ci) { if(confirm("刪？")) { inv.splice(ci,1); db.ref('inventory').set(inv); }}
+    function delI(ci, ii) { if(confirm("刪？")) { inv[ci].items.splice(ii,1); db.ref('inventory').set(inv); }}
+    function renderLog() { const today = new Date().toLocaleDateString('zh-TW'); const t = orders.filter(o => o.d === today).reverse().slice(0, 5); document.getElementById('today-log').innerHTML = t.map(o => `<div>[${o.t}] $${o.total} (${o.pay})</div>`).join(''); }
+    function syncSearch(v, tid) { searchQuery = v.toLowerCase(); document.getElementById(tid).value=v; renderUI(); renderAdmin(); }
+    function openM(id) { document.getElementById(id).style.display='flex'; }
+    function closeM(id) { document.getElementById(id).style.display='none'; }
 
     init();
 </script>
