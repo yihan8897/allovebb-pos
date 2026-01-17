@@ -145,43 +145,35 @@
 <div id="report-modal" class="modal"><div class="modal-content" style="max-width:400px; height:auto;"><h2>📝 今日報表</h2><div id="report-body" style="line-height:2; background:#fffaf5; padding:15px; border-radius:10px;"></div><button onclick="closeM('report-modal')" style="width:100%; padding:10px; margin-top:10px; border:none; background:#eee; cursor:pointer;">關閉</button></div></div>
 
 <script>
-    // Firebase 初始化
     const firebaseConfig = { apiKey: "AIzaSyA-cxLaa0z17gjPYYmXJBFHhlvnHZMn0Wk", authDomain: "allove-75af5.firebaseapp.com", databaseURL: "https://allove-75af5-default-rtdb.firebaseio.com/", projectId: "allove-75af5", storageBucket: "allove-75af5.firebasestorage.app", messagingSenderId: "1046256611808", appId: "1:1046256611808:web:8b7ede065e065a72c5fb85" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const auth = firebase.auth();
 
     let inv = []; let orders = []; let cart = []; let payM = '現金'; let lastCatIdx = 0; let searchQuery = "";
-    let adminCollapsed = {}; 
+    let adminCollapsed = {}; // 用於控制分類展開/收合
 
-    // 登入邏輯修正：確保登入後立即觸發 startDatabaseListeners
     function login() {
         const pass = document.getElementById('sys-pass').value;
-        if(pass === "889723") { 
+        if(pass === "1234") { 
             auth.signInAnonymously().then(() => {
                 document.getElementById('auth-guard').style.display = 'none';
                 document.getElementById('main-content').style.display = 'block';
-                startDatabaseListeners(); // 登入後啟動資料監聽
-            }).catch(e => {
-                console.error(e);
-                alert("登入連線失敗，請檢查網路。");
-            });
-        } else {
-            alert("密碼錯誤！");
-        }
+                startDatabaseListeners();
+            }).catch(e => { alert("登入失敗。"); });
+        } else { alert("密碼錯誤！"); }
     }
 
-    // 綁定 Enter 鍵登入
-    document.getElementById('sys-pass').addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') login();
-    });
+    document.getElementById('sys-pass').addEventListener('keypress', function (e) { if (e.key === 'Enter') login(); });
 
     function startDatabaseListeners() {
         db.ref('inventory').on('value', snap => { 
             let data = snap.val() || [];
-            inv = data.map(cat => ({
-                ...cat,
-                items: (cat.items || []).map(it => {
+            inv = data.map((cat, ci) => {
+                // 初始化時：如果 adminCollapsed 裡沒紀錄，預設設定為 true (收合)
+                if (adminCollapsed[ci] === undefined) adminCollapsed[ci] = true;
+                
+                let items = (cat.items || []).map(it => {
                     if (it.sizes && !Array.isArray(it.sizes)) {
                         const newSizes = [];
                         Object.keys(it.sizes).forEach(k => {
@@ -190,8 +182,9 @@
                         it.sizes = newSizes; delete it.sizeShow; delete it.szCosts; delete it.szPrices;
                     }
                     return it;
-                })
-            }));
+                });
+                return { ...cat, items };
+            });
             renderUI(); renderAdmin(); renderStockAlert(); 
         });
         db.ref('orders').on('value', snap => {
@@ -200,7 +193,6 @@
         });
     }
 
-    // 所有 POS 核心功能 (不變動)
     function syncSearch(val, targetId) { searchQuery = val.toLowerCase().trim(); document.getElementById(targetId).value = val; renderUI(); renderAdmin(); }
 
     function renderUI() {
@@ -248,7 +240,8 @@
         inv.forEach((cat, ci) => {
             let filteredItems = (cat.items || []).filter(it => it.n.toLowerCase().includes(searchQuery));
             if (filteredItems.length === 0 && searchQuery) return;
-            let isCollapsed = searchQuery ? false : (adminCollapsed[ci] || false);
+            // 搜索時自動展開，非搜索時依據 adminCollapsed 狀態
+            let isCollapsed = searchQuery ? false : (adminCollapsed[ci] !== false);
             tbody.innerHTML += `<tr class="admin-cat-row" onclick="toggleAdminCat(${ci})"><td colspan="3" align="left"><b>${isCollapsed?'▶':'▼'} 📁 ${cat.cat}</b> <label onclick="event.stopPropagation()"><input type="checkbox" ${cat.isPre ? 'checked' : ''} onchange="updCat(${ci}, 'isPre', this.checked)"> 預購</label></td><td><button onclick="event.stopPropagation();moveCat(${ci},-1)">↑</button><button onclick="event.stopPropagation();moveCat(${ci},1)">↓</button> <button onclick="event.stopPropagation();editC(${ci})">改名</button></td><td></td><td><button onclick="event.stopPropagation();delC(${ci})" style="color:red">刪</button></td></tr>`;
             (cat.items || []).forEach((it, ii) => {
                 if (searchQuery && !it.n.toLowerCase().includes(searchQuery)) return;
@@ -270,7 +263,6 @@
         });
     }
 
-    // 規格與產品操作功能 (100% 保留)
     function updSz(ci, ii, si, k, v) { inv[ci].items[ii].sizes[si][k] = (k==='n'||k==='show' ? v : Number(v)); db.ref('inventory').set(inv); }
     function moveSz(ci, ii, si, d) { let list = inv[ci].items[ii].sizes; if (si + d >= 0 && si + d < list.length) { [list[si], list[si+d]] = [list[si+d], list[si]]; db.ref('inventory').set(inv); } }
     function delSize(ci, ii, si) { if(confirm("刪除規格？")) { inv[ci].items[ii].sizes.splice(si, 1); db.ref('inventory').set(inv); }}
@@ -294,7 +286,6 @@
     function delC(ci) { if(confirm("刪除分類？")) { inv.splice(ci,1); db.ref('inventory').set(inv); }}
     function delI(ci, ii) { if(confirm("刪除商品？")) { inv[ci].items.splice(ii,1); db.ref('inventory').set(inv); }}
 
-    // 結帳邏輯功能 (100% 保留)
     function addCart(n, p, c, sz, ci, ii, si) { cart.push({n, p, c, sz, ci, ii, si}); renderCart(); }
     function renderCart() { document.getElementById('cart-list').innerHTML = cart.map((it, i) => `<div style="display:flex;justify-content:space-between;padding:5px 0;"><span>${it.n}(${it.sz})</span><span onclick="cart.splice(${i},1);renderCart()" style="color:red;cursor:pointer;">✕</span></div>`).join(''); calc(); }
     function calc() { const s = cart.reduce((a, b) => a + b.p, 0), d = Number(document.getElementById('discount').value) || 0; const f = s - d; document.getElementById('final-total').innerText = f; const c = Number(document.getElementById('cash-in').value) || 0; document.getElementById('change').innerText = c > f ? c - f : 0; }
@@ -324,7 +315,6 @@
         closeM('history-modal'); alert("已標記退貨並回填購物車。");
     }
 
-    // 數據顯示與報表功能 (100% 保留)
     function renderLog() { const today = new Date().toLocaleDateString('zh-TW'); const t = orders.filter(o => o.d === today).reverse().slice(0, 5); document.getElementById('today-log').innerHTML = t.map(o => `<div class="log-item"><span class="${o.isRefund?'is-refunded':''}">[${o.t}] $${o.total}</span>${!o.isRefund?`<button onclick="processRefund('${o.key}')">退</button>`:''}</div>`).join(''); }
     function renderStockAlert() {
         let a = []; inv.forEach(c => { if(c.isPre) return; (c.items||[]).forEach(it => { (it.sizes||[]).forEach(sz => { if(sz.s<=0 && sz.show!==false) a.push(`${it.n}(${sz.n})`); })}); });
