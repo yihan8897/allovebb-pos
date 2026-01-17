@@ -60,16 +60,18 @@
         .log-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #f0f0f0; }
         .is-refunded { text-decoration: line-through; color: #bbb !important; }
         .promo-tag { background: var(--promo-orange); color: white; padding: 5px 10px; border-radius: 8px; font-size: 0.9em; margin-bottom: 10px; display: inline-block; font-weight: bold; }
-        @media print { .no-print { display: none !important; } .modal { position: absolute; background: white; } }
+        @media print { .no-print { display: none !important; } .modal { position: absolute; background: white; border:none; } }
     </style>
 </head>
 <body>
 
-<div id="auth-guard" style="padding: 50px; text-align: center;">
-    <h2>🧸 Allove Baby 系統安全登入</h2>
-    <p>請輸入密碼以開啟管理介面</p>
-    <input type="password" id="sys-pass" style="padding: 10px; font-size: 1.2em; border-radius: 8px; border: 1px solid #ccc;"><br><br>
-    <button onclick="login()" style="padding: 10px 30px; background: var(--main-brown); color: white; border: none; border-radius: 8px; cursor: pointer;">進入系統</button>
+<div id="auth-guard" style="padding: 100px 20px; text-align: center;">
+    <h2>🧸 Allove Baby 系統安全檢查</h2>
+    <div style="max-width:300px; margin:0 auto; background:white; padding:30px; border-radius:20px; border:2px solid #e8e0d9;">
+        <p>請輸入管理員密碼</p>
+        <input type="password" id="sys-pass" placeholder="Password" style="width:100%; padding:15px; font-size: 1.2em; border-radius: 10px; border: 1px solid #ddd; box-sizing:border-box;"><br><br>
+        <button onclick="login()" style="width:100%; padding: 15px; background: var(--main-brown); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight:bold;">進入系統</button>
+    </div>
 </div>
 
 <div id="main-content" style="display:none;">
@@ -143,6 +145,7 @@
 <div id="report-modal" class="modal"><div class="modal-content" style="max-width:400px; height:auto;"><h2>📝 今日報表</h2><div id="report-body" style="line-height:2; background:#fffaf5; padding:15px; border-radius:10px;"></div><button onclick="closeM('report-modal')" style="width:100%; padding:10px; margin-top:10px; border:none; background:#eee; cursor:pointer;">關閉</button></div></div>
 
 <script>
+    // Firebase 初始化
     const firebaseConfig = { apiKey: "AIzaSyA-cxLaa0z17gjPYYmXJBFHhlvnHZMn0Wk", authDomain: "allove-75af5.firebaseapp.com", databaseURL: "https://allove-75af5-default-rtdb.firebaseio.com/", projectId: "allove-75af5", storageBucket: "allove-75af5.firebasestorage.app", messagingSenderId: "1046256611808", appId: "1:1046256611808:web:8b7ede065e065a72c5fb85" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
@@ -151,19 +154,27 @@
     let inv = []; let orders = []; let cart = []; let payM = '現金'; let lastCatIdx = 0; let searchQuery = "";
     let adminCollapsed = {}; 
 
-    // 安全登入功能 (新增)
+    // 登入邏輯修正：確保登入後立即觸發 startDatabaseListeners
     function login() {
         const pass = document.getElementById('sys-pass').value;
-        if(pass === "889723") { // 請自行修改密碼
+        if(pass === "889723") { 
             auth.signInAnonymously().then(() => {
                 document.getElementById('auth-guard').style.display = 'none';
                 document.getElementById('main-content').style.display = 'block';
-                startDatabaseListeners();
-            }).catch(e => alert("登入失敗: " + e.message));
+                startDatabaseListeners(); // 登入後啟動資料監聽
+            }).catch(e => {
+                console.error(e);
+                alert("登入連線失敗，請檢查網路。");
+            });
         } else {
-            alert("密碼錯誤");
+            alert("密碼錯誤！");
         }
     }
+
+    // 綁定 Enter 鍵登入
+    document.getElementById('sys-pass').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') login();
+    });
 
     function startDatabaseListeners() {
         db.ref('inventory').on('value', snap => { 
@@ -189,7 +200,7 @@
         });
     }
 
-    // --- 以下為 100% 原始 POS 功能 ---
+    // 所有 POS 核心功能 (不變動)
     function syncSearch(val, targetId) { searchQuery = val.toLowerCase().trim(); document.getElementById(targetId).value = val; renderUI(); renderAdmin(); }
 
     function renderUI() {
@@ -209,7 +220,7 @@
         });
         const sc = document.getElementById('sel-cat');
         sc.innerHTML = inv.map((c,i)=>`<option value="${i}">${c.cat}</option>`).join('');
-        sc.value = lastCatIdx;
+        sc.value = lastCatIdx; sc.onchange = (e) => { lastCatIdx = e.target.value; };
     }
 
     function openSizePicker(ci, ii) {
@@ -235,6 +246,8 @@
     function renderAdmin() {
         const tbody = document.getElementById('admin-tbody'); tbody.innerHTML = '';
         inv.forEach((cat, ci) => {
+            let filteredItems = (cat.items || []).filter(it => it.n.toLowerCase().includes(searchQuery));
+            if (filteredItems.length === 0 && searchQuery) return;
             let isCollapsed = searchQuery ? false : (adminCollapsed[ci] || false);
             tbody.innerHTML += `<tr class="admin-cat-row" onclick="toggleAdminCat(${ci})"><td colspan="3" align="left"><b>${isCollapsed?'▶':'▼'} 📁 ${cat.cat}</b> <label onclick="event.stopPropagation()"><input type="checkbox" ${cat.isPre ? 'checked' : ''} onchange="updCat(${ci}, 'isPre', this.checked)"> 預購</label></td><td><button onclick="event.stopPropagation();moveCat(${ci},-1)">↑</button><button onclick="event.stopPropagation();moveCat(${ci},1)">↓</button> <button onclick="event.stopPropagation();editC(${ci})">改名</button></td><td></td><td><button onclick="event.stopPropagation();delC(${ci})" style="color:red">刪</button></td></tr>`;
             (cat.items || []).forEach((it, ii) => {
@@ -252,14 +265,107 @@
                     </div>`;
                 });
                 szCtrl += `<div style="grid-column: span 2; display:flex; gap:5px;"><button onclick="addNewSize(${ci},${ii})">+單個</button><button onclick="addBatchSize(${ci},${ii})">➕批量</button></div></div>`;
-                tbody.innerHTML += `<tr class="${isCollapsed?'collapsed-row':''}"><td><button onclick="move(${ci},ii,-1)">↑</button><button onclick="move(${ci},ii,1)">↓</button></td><td><input type="text" value="${it.n}" onchange="upd(${ci},ii,'n',this.value)" style="width:90px"></td><td>${szCtrl}</td><td><button onclick="changeProductCat(${ci},ii)">移</button><br><input type="checkbox" ${it.show!==false?'checked':''} onchange="upd(${ci},ii,'show',this.checked)"></td><td><input type="text" value="${it.promo||''}" onchange="upd(${ci},ii,'promo',this.value)" style="width:90px; color:orange;"></td><td onclick="delI(${ci},ii)" style="color:red;cursor:pointer">✕</td></tr>`;
+                tbody.innerHTML += `<tr class="${isCollapsed?'collapsed-row':''}"><td><button onclick="move(${ci},${ii},-1)">↑</button><button onclick="move(${ci},${ii},1)">↓</button></td><td><input type="text" value="${it.n}" onchange="upd(${ci},${ii},'n',this.value)" style="width:90px"></td><td>${szCtrl}</td><td><button onclick="changeProductCat(${ci},${ii})">移</button><br><input type="checkbox" ${it.show!==false?'checked':''} onchange="upd(${ci},${ii},'show',this.checked)"></td><td><input type="text" value="${it.promo||''}" onchange="upd(${ci},${ii},'promo',this.value)" style="width:90px; color:var(--promo-orange); font-weight:bold;"></td><td onclick="delI(${ci},${ii})" style="color:red;cursor:pointer">✕</td></tr>`;
             });
         });
     }
 
-    // 基礎管理功能
+    // 規格與產品操作功能 (100% 保留)
     function updSz(ci, ii, si, k, v) { inv[ci].items[ii].sizes[si][k] = (k==='n'||k==='show' ? v : Number(v)); db.ref('inventory').set(inv); }
     function moveSz(ci, ii, si, d) { let list = inv[ci].items[ii].sizes; if (si + d >= 0 && si + d < list.length) { [list[si], list[si+d]] = [list[si+d], list[si]]; db.ref('inventory').set(inv); } }
     function delSize(ci, ii, si) { if(confirm("刪除規格？")) { inv[ci].items[ii].sizes.splice(si, 1); db.ref('inventory').set(inv); }}
     function addNewSize(ci, ii) { let name = prompt("規格名"); if(!name) return; let it = inv[ci].items[ii]; if(!it.sizes) it.sizes = []; it.sizes.push({ n: name, s: 1, p: it.p, c: it.c, show: true }); db.ref('inventory').set(inv); }
-    function addBatchSize(ci, ii) { let input = prompt("規格(逗號隔開)"); if(!input) return; let names = input.split(/[,，\s]+/).map(s=>s.trim()).filter(s=>s!==""); let it = inv[ci].items[ii]; names.forEach(n => it.sizes.push({ n,
+    function addBatchSize(ci, ii) { let input = prompt("規格(逗號隔開)"); if(!input) return; let names = input.split(/[,，\s]+/).map(s=>s.trim()).filter(s=>s!==""); let it = inv[ci].items[ii]; names.forEach(n => it.sizes.push({ n, s: 1, p: it.p, c: it.c, show: true })); db.ref('inventory').set(inv); }
+    function toggleAdminCat(ci) { adminCollapsed[ci] = !adminCollapsed[ci]; renderAdmin(); }
+    function updCat(ci, k, v) { inv[ci][k] = v; db.ref('inventory').set(inv); }
+    function upd(ci, ii, k, v) { inv[ci].items[ii][k] = (k==='n'||k==='show'||k==='promo'?v:Number(v)); db.ref('inventory').set(inv); }
+    function addP() {
+        const ci=document.getElementById('sel-cat').value, n=document.getElementById('n-n').value; if(!n) return;
+        const c=Number(document.getElementById('n-c').value)||0, p=Number(document.getElementById('n-p').value)||0, s=document.getElementById('n-s').value, m=document.getElementById('n-m').value;
+        const sArr = s?s.split(','):['F']; const sizes = sArr.map(x => ({ n: x.trim(), s: 1, p: p, c: c, show: true }));
+        if(!inv[ci].items) inv[ci].items=[]; inv[ci].items.push({n,c,p,promo:m,show:true,sizes}); db.ref('inventory').set(inv);
+        document.getElementById('n-n').value=''; document.getElementById('n-m').value='';
+    }
+    function changeProductCat(oldCi, ii) { const newCi = parseInt(prompt("目標分類編號")); if(!isNaN(newCi)) { const prod = inv[oldCi].items.splice(ii, 1)[0]; if(!inv[newCi].items) inv[newCi].items = []; inv[newCi].items.push(prod); db.ref('inventory').set(inv); } }
+    function addC() { let n=prompt("分類名"); if(n){ inv.push({cat:n, items:[], isPre:false}); db.ref('inventory').set(inv); }}
+    function moveCat(ci, d) { if(ci+d>=0 && ci+d<inv.length){ [inv[ci],inv[ci+d]]=[inv[ci+d],inv[ci]]; db.ref('inventory').set(inv); }}
+    function editC(ci) { let n=prompt("改名",inv[ci].cat); if(n){ inv[ci].cat=n; db.ref('inventory').set(inv); }}
+    function move(ci, ii, d) { let l=inv[ci].items; if(ii+d>=0 && ii+d<l.length){ [l[ii],l[ii+d]]=[l[ii+d],l[ii]]; db.ref('inventory').set(inv); }}
+    function delC(ci) { if(confirm("刪除分類？")) { inv.splice(ci,1); db.ref('inventory').set(inv); }}
+    function delI(ci, ii) { if(confirm("刪除商品？")) { inv[ci].items.splice(ii,1); db.ref('inventory').set(inv); }}
+
+    // 結帳邏輯功能 (100% 保留)
+    function addCart(n, p, c, sz, ci, ii, si) { cart.push({n, p, c, sz, ci, ii, si}); renderCart(); }
+    function renderCart() { document.getElementById('cart-list').innerHTML = cart.map((it, i) => `<div style="display:flex;justify-content:space-between;padding:5px 0;"><span>${it.n}(${it.sz})</span><span onclick="cart.splice(${i},1);renderCart()" style="color:red;cursor:pointer;">✕</span></div>`).join(''); calc(); }
+    function calc() { const s = cart.reduce((a, b) => a + b.p, 0), d = Number(document.getElementById('discount').value) || 0; const f = s - d; document.getElementById('final-total').innerText = f; const c = Number(document.getElementById('cash-in').value) || 0; document.getElementById('change').innerText = c > f ? c - f : 0; }
+    function setPay(m, btn) { payM = m; document.querySelectorAll('.pay-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
+
+    function checkout() {
+        if (!cart.length) return;
+        const t = Number(document.getElementById('final-total').innerText), tc = cart.reduce((a, b) => a + (b.c || 0), 0);
+        const d = document.getElementById('is-backdate').checked && document.getElementById('backdate-val').value ? document.getElementById('backdate-val').value.replace(/-/g,'/') : new Date().toLocaleDateString('zh-TW');
+        const order = {d, t: new Date().toLocaleTimeString('zh-TW',{hour12:false}), items: cart.map(i=>`${i.n}(${i.sz})`).join(', '), details: cart, total: t, profit: t - tc, pay: payM, note: document.getElementById('order-note').value, isRefund: false};
+        cart.forEach(item => { if(inv[item.ci].items[item.ii].sizes[item.si]) inv[item.ci].items[item.ii].sizes[item.si].s--; });
+        db.ref('orders').push(order); db.ref('inventory').set(inv);
+        if(payM === '網路商城') {
+            document.getElementById('inv-date').innerText = '日期：' + order.d; document.getElementById('inv-id').innerText = '單號：' + Date.now().toString().slice(-6);
+            document.getElementById('inv-cust').innerText = order.note || '無'; document.getElementById('inv-body').innerHTML = cart.map(i => `<tr><td>${i.n}(${i.sz})</td><td>1</td><td>$${i.p}</td></tr>`).join('');
+            document.getElementById('inv-total').innerText = t; openM('invoice-modal');
+        } else alert("結帳成功！");
+        cart = []; renderCart(); document.getElementById('order-note').value = ''; document.getElementById('discount').value = ''; document.getElementById('cash-in').value = '';
+    }
+
+    function processRefund(k) {
+        if(!confirm("確定退貨？")) return;
+        const o = orders.find(x => x.key === k); if(!o || o.isRefund) return;
+        (o.details || []).forEach(i => { if(inv[i.ci] && inv[i.ci].items[i.ii] && inv[i.ci].items[i.ii].sizes[i.si]) inv[i.ci].items[i.ii].sizes[i.si].s++; });
+        cart = (o.details || []).map(i => ({...i})); renderCart();
+        db.ref('orders').child(k).update({ isRefund: true, total: 0, profit: 0 }); db.ref('inventory').set(inv);
+        closeM('history-modal'); alert("已標記退貨並回填購物車。");
+    }
+
+    // 數據顯示與報表功能 (100% 保留)
+    function renderLog() { const today = new Date().toLocaleDateString('zh-TW'); const t = orders.filter(o => o.d === today).reverse().slice(0, 5); document.getElementById('today-log').innerHTML = t.map(o => `<div class="log-item"><span class="${o.isRefund?'is-refunded':''}">[${o.t}] $${o.total}</span>${!o.isRefund?`<button onclick="processRefund('${o.key}')">退</button>`:''}</div>`).join(''); }
+    function renderStockAlert() {
+        let a = []; inv.forEach(c => { if(c.isPre) return; (c.items||[]).forEach(it => { (it.sizes||[]).forEach(sz => { if(sz.s<=0 && sz.show!==false) a.push(`${it.n}(${sz.n})`); })}); });
+        document.getElementById('stock-alert-list').innerHTML = a.map(x => `<div style="color:red;">● ${x} 缺貨</div>`).join('') || '庫存正常';
+    }
+    function renderWeeklyHot() {
+        const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7); const map = {};
+        orders.forEach(o => { if (!o.isRefund && new Date(o.d.replace(/\//g, '-')) >= weekAgo) o.items.split(', ').forEach(lb => map[lb] = (map[lb] || 0) + 1); });
+        const sorted = Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 5);
+        document.getElementById('weekly-hot-list').innerHTML = sorted.map((x, i) => `<div class="hot-item"><span>${i + 1}. ${x[0]}</span><b>${x[1]}件</b></div>`).join('') || '無數據';
+    }
+
+    function renderH() {
+        const m = document.getElementById('h-month').value; if(!m) return;
+        const [y, mm] = m.split('-'); const f = orders.filter(o => { const d = o.d.split('/'); return d[0]===y && parseInt(d[1])===parseInt(mm); });
+        let rev = 0, prof = 0;
+        document.getElementById('h-tbody').innerHTML = f.slice().reverse().map(o => { 
+            if(!o.isRefund) { rev+=o.total; prof+=o.profit; } 
+            return `<tr class="${o.isRefund?'is-refunded':''}"><td>${o.d} ${o.t}</td><td>${o.items}</td><td>$${o.total}</td><td>$${o.profit}</td><td>${o.pay}</td><td><button onclick="processRefund('${o.key}')">退</button></td></tr>`;
+        }).join('');
+        document.getElementById('h-sum').innerText = `本月營收：$${rev} / 毛利：$${prof}`;
+    }
+
+    function exportXLS() {
+        const m = document.getElementById('h-month').value; if(!m) return alert("請選月份");
+        const [y, mm] = m.split('-');
+        const data = orders.filter(o => { const d = o.d.split('/'); return d[0]===y && parseInt(d[1])===parseInt(mm); })
+            .map(o => ({ "日期": o.d, "時間": o.t, "內容": o.items, "金額": o.total, "毛利": o.profit, "支付": o.pay, "備註": o.note, "退貨": o.isRefund ? "是":"否" }));
+        const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Sales"); XLSX.writeFile(wb, `Allove_Report_${m}.xlsx`);
+    }
+
+    function generateReport() {
+        const today = new Date().toLocaleDateString('zh-TW');
+        const tOrders = orders.filter(o => o.d === today && !o.isRefund);
+        const total = tOrders.reduce((a, b) => a + b.total, 0);
+        document.getElementById('report-body').innerHTML = `今日總收：$${total}<br>今日單數：${tOrders.length}`;
+        openM('report-modal');
+    }
+
+    function openM(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeM(id) { document.getElementById(id).style.display = 'none'; }
+</script>
+</body>
+</html>
