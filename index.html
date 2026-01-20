@@ -142,7 +142,7 @@
 
 <div id="history-modal" class="modal"><div class="modal-content"><div style="display:flex; justify-content:space-between;"><h3>📜 歷史紀錄</h3><button onclick="closeM('history-modal')">✕</button></div><div style="margin:10px 0;">月份：<input type="month" id="h-month" onchange="renderH()"><button onclick="exportXLS()" style="margin-left:10px;">匯出 Excel</button></div><div id="h-sum" style="padding:15px; background:#fff5eb; border-radius:10px; font-weight:bold; margin-bottom:10px;"></div><div class="scroll-v"><table><thead><tr><th>時間</th><th>品項</th><th>總額</th><th>毛利</th><th>方式</th><th>操作</th></tr></thead><tbody id="h-tbody"></tbody></table></div></div></div>
 
-<div id="report-modal" class="modal"><div class="modal-content" style="max-width:400px; height:auto;"><h2>📝 今日報表</h2><div id="report-body" style="line-height:2; background:#fffaf5; padding:15px; border-radius:10px;"></div><button onclick="closeM('report-modal')" style="width:100%; padding:10px; margin-top:10px; border:none; background:#eee; cursor:pointer;">關閉</button></div></div>
+<div id="report-modal" class="modal"><div class="modal-content" style="max-width:400px; height:auto;"><h2>📝 今日收支報表</h2><div id="report-body" style="line-height:2.5; background:#fffaf5; padding:20px; border-radius:15px; font-size: 1.1em;"></div><button onclick="closeM('report-modal')" style="width:100%; padding:15px; margin-top:20px; border:none; background:var(--main-brown); color:white; border-radius:10px; cursor:pointer; font-weight:bold;">關閉報表</button></div></div>
 
 <script>
     const firebaseConfig = { apiKey: "AIzaSyA-cxLaa0z17gjPYYmXJBFHhlvnHZMn0Wk", authDomain: "allove-75af5.firebaseapp.com", databaseURL: "https://allove-75af5-default-rtdb.firebaseio.com/", projectId: "allove-75af5", storageBucket: "allove-75af5.firebasestorage.app", messagingSenderId: "1046256611808", appId: "1:1046256611808:web:8b7ede065e065a72c5fb85" };
@@ -151,16 +151,16 @@
     const auth = firebase.auth();
 
     let inv = []; let orders = []; let cart = []; let payM = '現金'; let lastCatIdx = 0; let searchQuery = "";
-    let adminCollapsed = {}; // 用於控制分類展開/收合
+    let adminCollapsed = {}; 
 
     function login() {
         const pass = document.getElementById('sys-pass').value;
-        if(pass === "889723") { 
+        if(pass === "1234") { 
             auth.signInAnonymously().then(() => {
                 document.getElementById('auth-guard').style.display = 'none';
                 document.getElementById('main-content').style.display = 'block';
                 startDatabaseListeners();
-            }).catch(e => { alert("登入失敗。"); });
+            }).catch(e => { alert("登入失敗，請檢查網路。"); });
         } else { alert("密碼錯誤！"); }
     }
 
@@ -170,9 +170,7 @@
         db.ref('inventory').on('value', snap => { 
             let data = snap.val() || [];
             inv = data.map((cat, ci) => {
-                // 初始化時：如果 adminCollapsed 裡沒紀錄，預設設定為 true (收合)
                 if (adminCollapsed[ci] === undefined) adminCollapsed[ci] = true;
-                
                 let items = (cat.items || []).map(it => {
                     if (it.sizes && !Array.isArray(it.sizes)) {
                         const newSizes = [];
@@ -240,7 +238,6 @@
         inv.forEach((cat, ci) => {
             let filteredItems = (cat.items || []).filter(it => it.n.toLowerCase().includes(searchQuery));
             if (filteredItems.length === 0 && searchQuery) return;
-            // 搜索時自動展開，非搜索時依據 adminCollapsed 狀態
             let isCollapsed = searchQuery ? false : (adminCollapsed[ci] !== false);
             tbody.innerHTML += `<tr class="admin-cat-row" onclick="toggleAdminCat(${ci})"><td colspan="3" align="left"><b>${isCollapsed?'▶':'▼'} 📁 ${cat.cat}</b> <label onclick="event.stopPropagation()"><input type="checkbox" ${cat.isPre ? 'checked' : ''} onchange="updCat(${ci}, 'isPre', this.checked)"> 預購</label></td><td><button onclick="event.stopPropagation();moveCat(${ci},-1)">↑</button><button onclick="event.stopPropagation();moveCat(${ci},1)">↓</button> <button onclick="event.stopPropagation();editC(${ci})">改名</button></td><td></td><td><button onclick="event.stopPropagation();delC(${ci})" style="color:red">刪</button></td></tr>`;
             (cat.items || []).forEach((it, ii) => {
@@ -296,7 +293,7 @@
         const t = Number(document.getElementById('final-total').innerText), tc = cart.reduce((a, b) => a + (b.c || 0), 0);
         const d = document.getElementById('is-backdate').checked && document.getElementById('backdate-val').value ? document.getElementById('backdate-val').value.replace(/-/g,'/') : new Date().toLocaleDateString('zh-TW');
         const order = {d, t: new Date().toLocaleTimeString('zh-TW',{hour12:false}), items: cart.map(i=>`${i.n}(${i.sz})`).join(', '), details: cart, total: t, profit: t - tc, pay: payM, note: document.getElementById('order-note').value, isRefund: false};
-        cart.forEach(item => { if(inv[item.ci].items[item.ii].sizes[item.si]) inv[item.ci].items[item.ii].sizes[item.si].s--; });
+        cart.forEach(item => { if(inv[item.ci]?.items[item.ii]?.sizes[item.si]) inv[item.ci].items[item.ii].sizes[item.si].s--; });
         db.ref('orders').push(order); db.ref('inventory').set(inv);
         if(payM === '網路商城') {
             document.getElementById('inv-date').innerText = '日期：' + order.d; document.getElementById('inv-id').innerText = '單號：' + Date.now().toString().slice(-6);
@@ -309,7 +306,7 @@
     function processRefund(k) {
         if(!confirm("確定退貨？")) return;
         const o = orders.find(x => x.key === k); if(!o || o.isRefund) return;
-        (o.details || []).forEach(i => { if(inv[i.ci] && inv[i.ci].items[i.ii] && inv[i.ci].items[i.ii].sizes[i.si]) inv[i.ci].items[i.ii].sizes[i.si].s++; });
+        (o.details || []).forEach(i => { if(inv[i.ci]?.items[i.ii]?.sizes[i.si]) inv[i.ci].items[i.ii].sizes[i.si].s++; });
         cart = (o.details || []).map(i => ({...i})); renderCart();
         db.ref('orders').child(k).update({ isRefund: true, total: 0, profit: 0 }); db.ref('inventory').set(inv);
         closeM('history-modal'); alert("已標記退貨並回填購物車。");
@@ -346,11 +343,18 @@
         const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Sales"); XLSX.writeFile(wb, `Allove_Report_${m}.xlsx`);
     }
 
+    // 修復後的當日報表邏輯
     function generateReport() {
         const today = new Date().toLocaleDateString('zh-TW');
         const tOrders = orders.filter(o => o.d === today && !o.isRefund);
-        const total = tOrders.reduce((a, b) => a + b.total, 0);
-        document.getElementById('report-body').innerHTML = `今日總收：$${total}<br>今日單數：${tOrders.length}`;
+        const totalRev = tOrders.reduce((a, b) => a + (b.total || 0), 0);
+        const totalProfit = tOrders.reduce((a, b) => a + (b.profit || 0), 0);
+        
+        document.getElementById('report-body').innerHTML = `
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid #ddd; padding:5px 0;"><span>今日總營收：</span><b style="color:var(--price-red); font-size:1.2em;">$${totalRev}</b></div>
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid #ddd; padding:5px 0;"><span>今日總毛利：</span><b style="color:var(--profit-green); font-size:1.2em;">$${totalProfit}</b></div>
+            <div style="display:flex; justify-content:space-between; padding:5px 0;"><span>今日總單數：</span><b>${tOrders.length} 單</b></div>
+        `;
         openM('report-modal');
     }
 
