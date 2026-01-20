@@ -107,7 +107,7 @@
                 <div id="today-log" style="font-size: 0.9em; margin-top:10px;"></div>
             </div>
             <div class="card" style="border-color: #ffcccc;"><strong>📢 補貨提醒</strong><div id="stock-alert-list" style="font-size: 0.8em; margin-top:5px; max-height: 80px; overflow-y: auto;"></div></div>
-            <div class="card"><strong>🔥 當週熱賣前五</strong><div id="weekly-hot-list" style="margin-top:10px;"></div></div>
+            <div class="card"><strong>🔥 當週現貨熱賣前五</strong><div id="weekly-hot-list" style="margin-top:10px;"></div></div>
             <div style="display:flex; gap:10px; padding-bottom: 50px;">
                 <button onclick="openM('admin-modal')" style="flex:1; padding:15px; border-radius:10px; cursor:pointer; background:white; border:2px solid var(--main-brown); font-weight:bold;">🛠️ 管理中心</button>
                 <button onclick="openM('history-modal')" style="flex:1; padding:15px; border-radius:10px; cursor:pointer; background:white; border:2px solid var(--main-brown); font-weight:bold;">📜 歷史報表</button>
@@ -317,11 +317,24 @@
         let a = []; inv.forEach(c => { if(c.isPre) return; (c.items||[]).forEach(it => { (it.sizes||[]).forEach(sz => { if(sz.s<=0 && sz.show!==false) a.push(`${it.n}(${sz.n})`); })}); });
         document.getElementById('stock-alert-list').innerHTML = a.map(x => `<div style="color:red;">● ${x} 缺貨</div>`).join('') || '庫存正常';
     }
+
+    // 重新修正的排行榜邏輯：排除預購區
     function renderWeeklyHot() {
         const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7); const map = {};
-        orders.forEach(o => { if (!o.isRefund && new Date(o.d.replace(/\//g, '-')) >= weekAgo) o.items.split(', ').forEach(lb => map[lb] = (map[lb] || 0) + 1); });
+        orders.forEach(o => { 
+            if (!o.isRefund && new Date(o.d.replace(/\//g, '-')) >= weekAgo) {
+                (o.details || []).forEach(item => {
+                    // 檢查該商品所屬分類是否為預購區 (isPre === true)
+                    const isPreOrder = inv[item.ci]?.isPre === true;
+                    if (!isPreOrder) {
+                        const label = `${item.n}(${item.sz})`;
+                        map[label] = (map[label] || 0) + 1;
+                    }
+                });
+            } 
+        });
         const sorted = Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 5);
-        document.getElementById('weekly-hot-list').innerHTML = sorted.map((x, i) => `<div class="hot-item"><span>${i + 1}. ${x[0]}</span><b>${x[1]}件</b></div>`).join('') || '無數據';
+        document.getElementById('weekly-hot-list').innerHTML = sorted.map((x, i) => `<div class="hot-item"><span>${i + 1}. ${x[0]}</span><b>${x[1]}件</b></div>`).join('') || '目前無現貨數據';
     }
 
     function renderH() {
@@ -343,11 +356,9 @@
         const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Sales"); XLSX.writeFile(wb, `Allove_Report_${m}.xlsx`);
     }
 
-    // 重新修正的報表邏輯：包含支付明細、總營收、總毛利、總單數
     function generateReport() {
         const today = new Date().toLocaleDateString('zh-TW');
         const tOrders = orders.filter(o => o.d === today && !o.isRefund);
-        
         let cash = 0, ePay = 0, mall = 0, totalProfit = 0;
         tOrders.forEach(o => {
             if(o.pay === '現金') cash += o.total;
@@ -356,7 +367,6 @@
             totalProfit += (o.profit || 0);
         });
         const totalRev = cash + ePay + mall;
-        
         document.getElementById('report-body').innerHTML = `
             <div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:5px 0;"><span>今日實收：</span><b style="color:var(--price-red); font-size:1.2em;">$${totalRev}</b></div>
             <div style="margin-left: 15px; font-size: 0.9em; color: #666; border-bottom:1px solid #eee; padding-bottom: 5px;">
