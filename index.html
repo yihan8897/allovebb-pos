@@ -142,7 +142,7 @@
 
 <div id="history-modal" class="modal"><div class="modal-content"><div style="display:flex; justify-content:space-between;"><h3>📜 歷史紀錄</h3><button onclick="closeM('history-modal')">✕</button></div><div style="margin:10px 0;">月份：<input type="month" id="h-month" onchange="renderH()"><button onclick="exportXLS()" style="margin-left:10px;">匯出 Excel</button></div><div id="h-sum" style="padding:15px; background:#fff5eb; border-radius:10px; font-weight:bold; margin-bottom:10px;"></div><div class="scroll-v"><table><thead><tr><th>時間</th><th>品項</th><th>總額</th><th>毛利</th><th>方式</th><th>操作</th></tr></thead><tbody id="h-tbody"></tbody></table></div></div></div>
 
-<div id="report-modal" class="modal"><div class="modal-content" style="max-width:400px; height:auto;"><h2>📝 今日收支報表</h2><div id="report-body" style="line-height:2.5; background:#fffaf5; padding:20px; border-radius:15px; font-size: 1.1em;"></div><button onclick="closeM('report-modal')" style="width:100%; padding:15px; margin-top:20px; border:none; background:var(--main-brown); color:white; border-radius:10px; cursor:pointer; font-weight:bold;">關閉報表</button></div></div>
+<div id="report-modal" class="modal"><div class="modal-content" style="max-width:400px; height:auto;"><h2>📝 今日收支報表</h2><div id="report-body" style="line-height:2.2; background:#fffaf5; padding:20px; border-radius:15px; font-size: 1.1em;"></div><button onclick="closeM('report-modal')" style="width:100%; padding:15px; margin-top:20px; border:none; background:var(--main-brown); color:white; border-radius:10px; cursor:pointer; font-weight:bold;">關閉報表</button></div></div>
 
 <script>
     const firebaseConfig = { apiKey: "AIzaSyA-cxLaa0z17gjPYYmXJBFHhlvnHZMn0Wk", authDomain: "allove-75af5.firebaseapp.com", databaseURL: "https://allove-75af5-default-rtdb.firebaseio.com/", projectId: "allove-75af5", storageBucket: "allove-75af5.firebasestorage.app", messagingSenderId: "1046256611808", appId: "1:1046256611808:web:8b7ede065e065a72c5fb85" };
@@ -160,7 +160,7 @@
                 document.getElementById('auth-guard').style.display = 'none';
                 document.getElementById('main-content').style.display = 'block';
                 startDatabaseListeners();
-            }).catch(e => { alert("登入失敗，請檢查網路。"); });
+            }).catch(e => { alert("登入失敗。"); });
         } else { alert("密碼錯誤！"); }
     }
 
@@ -343,17 +343,29 @@
         const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Sales"); XLSX.writeFile(wb, `Allove_Report_${m}.xlsx`);
     }
 
-    // 修復後的當日報表邏輯
+    // 重新修正的報表邏輯：包含支付明細、總營收、總毛利、總單數
     function generateReport() {
         const today = new Date().toLocaleDateString('zh-TW');
         const tOrders = orders.filter(o => o.d === today && !o.isRefund);
-        const totalRev = tOrders.reduce((a, b) => a + (b.total || 0), 0);
-        const totalProfit = tOrders.reduce((a, b) => a + (b.profit || 0), 0);
+        
+        let cash = 0, ePay = 0, mall = 0, totalProfit = 0;
+        tOrders.forEach(o => {
+            if(o.pay === '現金') cash += o.total;
+            else if(o.pay === '電支') ePay += o.total;
+            else if(o.pay === '網路商城') mall += o.total;
+            totalProfit += (o.profit || 0);
+        });
+        const totalRev = cash + ePay + mall;
         
         document.getElementById('report-body').innerHTML = `
-            <div style="display:flex; justify-content:space-between; border-bottom:1px solid #ddd; padding:5px 0;"><span>今日總營收：</span><b style="color:var(--price-red); font-size:1.2em;">$${totalRev}</b></div>
-            <div style="display:flex; justify-content:space-between; border-bottom:1px solid #ddd; padding:5px 0;"><span>今日總毛利：</span><b style="color:var(--profit-green); font-size:1.2em;">$${totalProfit}</b></div>
-            <div style="display:flex; justify-content:space-between; padding:5px 0;"><span>今日總單數：</span><b>${tOrders.length} 單</b></div>
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:5px 0;"><span>今日實收：</span><b style="color:var(--price-red); font-size:1.2em;">$${totalRev}</b></div>
+            <div style="margin-left: 15px; font-size: 0.9em; color: #666; border-bottom:1px solid #eee; padding-bottom: 5px;">
+                <div style="display:flex; justify-content:space-between;"><span>└ 現金：</span><span>$${cash}</span></div>
+                <div style="display:flex; justify-content:space-between;"><span>└ 電支：</span><span>$${ePay}</span></div>
+                <div style="display:flex; justify-content:space-between;"><span>└ 商城：</span><span>$${mall}</span></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:10px 0;"><span>今日毛利：</span><b style="color:var(--profit-green); font-size:1.2em;">$${totalProfit}</b></div>
+            <div style="display:flex; justify-content:space-between; padding:10px 0;"><span>今日單數：</span><b>${tOrders.length} 單</b></div>
         `;
         openM('report-modal');
     }
